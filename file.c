@@ -19,7 +19,16 @@
         fwrite(&header->nroParesEstacao, sizeof(int), 1, file);
     }
 
-    void preencherCampos(char buffer[256], int fieldIndex, Registro *regAtual){
+    void readHeader(Header *header, FILE* file){
+        fseek(file, 0, SEEK_SET);
+        fread(&header->status, sizeof(char), 1, file);
+        fread(&header->topo, sizeof(int), 1, file);
+        fread(&header->proxRRN, sizeof(int), 1, file);
+        fread(&header->nroEstacoes, sizeof(int), 1, file);
+        fread(&header->nroParesEstacao, sizeof(int), 1, file);
+    }
+
+    void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         switch(fieldIndex){
             case 0:
                 //Verifica se o campo tem valor nulo
@@ -53,7 +62,7 @@
         }
     }
 
-    void preencherRegistros(Registro *registro, FILE* saida, Header *cabecalho){
+    void writeRegistros(Registro *registro, FILE* saida, Header *cabecalho){
         //Escreve o registro no arquivo de saída
         fwrite(registro, sizeof(Registro), 1, saida);
         cabecalho->proxRRN++; //Incrementa o RRN
@@ -62,6 +71,73 @@
         //Preenche campos não presentes no CSV
         registro->removido = '0';
         registro->proximo = -1;
+    }
+
+    int readRegistros(Registro *registro, FILE* file){
+            //Lê o registro campo a campo
+            if(fread(&registro -> removido, sizeof(char), 1, file) != 1)
+                return 0; //Retorna 0 se não foi possível ler o campo de "removido", indicando o fim do arquivo
+            fread(&registro->proximo, sizeof(int), 1, file);
+            fread(&registro->codEstacao, sizeof(int), 1, file);
+            fread(&registro->codLinha, sizeof(int), 1, file);
+            fread(&registro->codProxEstacao, sizeof(int), 1, file);
+            fread(&registro->distProxEstacao, sizeof(int), 1, file);
+            fread(&registro->codLinhaIntegra, sizeof(int), 1, file);
+            fread(&registro->codEstIntegra, sizeof(int), 1, file);
+            fread(&registro->tamNomeEstacao, sizeof(int), 1, file);
+            fread(&registro->nomeEstacao, sizeof(char), registro->tamNomeEstacao, file);
+            registro->nomeEstacao[registro->tamNomeEstacao] = '\0'; //Caractere de terminação da string
+            fread(&registro->tamNomeLinha, sizeof(int), 1, file);
+            fread(&registro->nomeLinha, sizeof(char), registro->tamNomeLinha, file);
+            registro->nomeLinha[registro->tamNomeLinha] = '\0'; //Caractere de terminação da string
+            return 1; //Retorna 1 se o registro foi lido com sucesso
+    }
+
+    void printRegistros(Registro *registro){
+        //verifica se o registro foi removido logicamente. Se não, imprime os campos do registro
+        if(registro->removido == '0'){
+            //Imprime o campo de código da estação, com verificação de valor nulo
+            if (registro->codEstacao == -1)
+                printf("NULO ");
+            else 
+                printf("%d ", registro->codEstacao);
+
+            //Imprime o campo de nome da estação
+            printf("%s ", registro->nomeEstacao);
+
+             //Imprime o campo de código da linha, com verificação de valor nulo
+            if (registro->codLinha == -1)
+                printf("NULO ");
+            else
+                printf("%d ", registro->codLinha);
+
+            //Imprime o campo de nome da linha
+            printf("%s ", registro->nomeLinha);
+
+            //Imprime o campo de código da próxima estação, com verificação de valor nulo
+            if (registro->codProxEstacao == -1)
+                printf("NULO ");
+            else
+                printf("%d ", registro->codProxEstacao);
+            
+            //Imprime o campo de distância para a próxima estação, com verificação de valor nulo
+            if (registro->distProxEstacao == -1)
+                printf("NULO ");
+            else
+                printf("%d ", registro->distProxEstacao);
+            
+            //Imprime o campo de código da linha de integração, com verificação de valor nulo
+            if (registro->codLinhaIntegra == -1)
+                printf("NULO ");
+            else
+                printf("%d ", registro->codLinhaIntegra);
+            
+            //Imprime o campo de código da estação de integração, com verificação de valor nulo
+            if (registro->codEstIntegra == -1)
+                printf("NULO\n");
+            else
+                printf("%d\n", registro->codEstIntegra);
+        }
     }
 
     FILE* CreateTable(char *inputFileName, char *outputFileName) {
@@ -93,12 +169,12 @@
                 buffer[posBuffer] = '\0'; //Sinaliza o final da string no buffer
 
                 //Função que preenche o campo correspondente no registro atual com base no índice do campo
-                preencherCampos(buffer, fieldIndex, &regAtual);
+                writeCampos(buffer, fieldIndex, &regAtual);
                 posBuffer = 0; //Sinaliza que o buffer está vazio para a leitura do próximo campo
                 
                 //Se o registro foi completamente preenchido (quebra de linha), escreve no binário. Se não, preenche o próximo campo
                 if (c == '\n') {
-                    preencherRegistros(&regAtual, saida, &cabecalho);
+                    writeRegistros(&regAtual, saida, &cabecalho);
                     fieldIndex = 0; //Os campos foram todos preenchidos, o próximo campo será o primeiro do próximo registro
                 } else {
                     fieldIndex++; //Sinaliza que a leitura de um campo foi concluída, passando para o próximo
@@ -120,3 +196,32 @@
         return saida;
     }
 
+    void Select(char *FileName){
+        FILE *file = fopen(FileName, "rb");
+        
+        //Acessar o cabeçalho do arquivo
+        Header cabecalho;
+        readHeader(&cabecalho, file);
+
+        //Verificar o status do arquivo
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(file);
+            return;
+        }
+
+        //Verificar se há registros no arquivo
+        if (cabecalho.nroEstacoes == 0) {
+            printf("Registro inexistente.\n");
+            fclose(file);
+            return;
+        }
+
+        //Loop para ler os registros
+        Registro regAtual;
+        int totalRegistros = cabecalho.nroEstacoes;
+        //A condição de parada do loop é quando a função readRegistros retornar 0, indicando que não há mais registros para ler
+        while(readRegistros(&regAtual, file))
+            printRegistros(&regAtual);
+        fclose(file);
+    }
