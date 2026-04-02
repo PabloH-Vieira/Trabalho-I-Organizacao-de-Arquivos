@@ -28,10 +28,13 @@ typedef struct{
 typedef struct file {
     Header header;
     FILE* file;
-    Registro registros[];
 }File;
 
-void CreateTable(char* InputFile, char* OutPutFile);
+FILE* CreateTable(char* InputFile, char* OutPutFile);
 void binarioNaTela(const char* filename);
+void newHeader(Header header);
+void preencherCampos(char buffer[256], int fieldIndex, Registro *regAtual);
+void preencherRegistros(Registro *registro, FILE* saida, Header *cabecalho);
+void writeHeader(Header *header, FILE* file);
 
 #endif
