@@ -338,6 +338,12 @@
             }
         }
 
+        if (fieldIndex > 0 || posBuffer > 0) {
+            buffer[posBuffer] = '\0';
+            writeCampos(buffer, fieldIndex, &regAtual);
+            writeRegistros(&regAtual, saida, &cabecalho);
+        }
+
         cabecalho.status = '1'; //Sinaliza que o arquivo foi criado corretamente
         fseek(saida, 0, SEEK_SET); //Posiciona o ponteiro do arquivo no início para atualizar o cabeçalho
         writeHeader(&cabecalho, saida); //Atualiza os valores do cabeçalho no arquivo de saída
