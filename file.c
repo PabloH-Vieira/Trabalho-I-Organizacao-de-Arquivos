@@ -1,5 +1,8 @@
 #include "file.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
     void newHeader(Header *header){
         header->status = '0';

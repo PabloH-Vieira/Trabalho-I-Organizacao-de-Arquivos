@@ -59,7 +59,7 @@ void BinarioNaTela(char *arquivo);
 void ScanQuoteString(char *str);
 
 //Funções das funcionalidades principais
-FILE* CreateTable(char* InputFile, char* OutPutFile);
+void CreateTable(char* InputFile, char* OutPutFile);
 void Select(char *FileName);
 void Where(char *FileName, int nroBuscas);
 
