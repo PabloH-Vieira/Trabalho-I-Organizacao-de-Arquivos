@@ -45,6 +45,7 @@ typedef struct{
     Registro regBusca;
 }CriteriosBusca;
 
+//Funções auxiliares
 void newHeader(Header *header);
 void writeHeader(Header *header, FILE* file);
 void readHeader(Header *header, FILE* file);
@@ -52,8 +53,14 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual);
 void writeRegistros(Registro *registro, FILE* saida, Header *cabecalho);
 int readRegistros(Registro *registro, FILE* file);
 void printRegistros(Registro *registro);
+void preencherCriteriosBusca(CriteriosBusca *criterios, char* campo, char* conteudo);
+int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual);
+void BinarioNaTela(char *arquivo);
+void ScanQuoteString(char *str);
+
+//Funções das funcionalidades principais
 FILE* CreateTable(char* InputFile, char* OutPutFile);
 void Select(char *FileName);
-void binarioNaTela(const char* filename);
+void Where(char *FileName, int nroBuscas);
 
 #endif

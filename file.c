@@ -277,7 +277,7 @@
         }
     }
 
-    FILE* CreateTable(char *inputFileName, char *outputFileName) {
+    void CreateTable(char *inputFileName, char *outputFileName) {
         FILE* entrada = fopen(inputFileName, "r");
 
         //Justificar o wb+
@@ -330,7 +330,8 @@
         fseek(saida, 0, SEEK_SET); //Posiciona o ponteiro do arquivo no início para atualizar o cabeçalho
         writeHeader(&cabecalho, saida); //Atualiza os valores do cabeçalho no arquivo de saída
         fclose(entrada);
-        return saida;
+        fclose(saida);
+        BinarioNaTela(outputFileName);
     }
 
     void Select(char *FileName){
