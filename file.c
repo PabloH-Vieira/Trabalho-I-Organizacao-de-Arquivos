@@ -66,14 +66,14 @@
     }
 
     void writeRegistros(Registro *registro, FILE* saida, Header *cabecalho){
+        //Preenche campos não presentes no CSV
+        registro->removido = '0';
+        registro->proximo = -1;
+
         //Escreve o registro no arquivo de saída
         fwrite(registro, sizeof(Registro), 1, saida);
         cabecalho->proxRRN++; //Incrementa o RRN
         cabecalho->nroEstacoes++; //Incrementa o número de estações
-
-        //Preenche campos não presentes no CSV
-        registro->removido = '0';
-        registro->proximo = -1;
     }
 
     int readRegistros(Registro *registro, FILE* file){
@@ -299,12 +299,16 @@
         char c; //Char que armazena o caractere lido do arquivo de entrada
         int fieldIndex = 0; //Índice para rastrear qual campo do registro está sendo preenchido
         Registro regAtual;
+        memset(&regAtual, 0, sizeof(Registro)); //Inicializa o registro atual, zerando seus campos
+        memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao)); //Preenche o campo de tamanho variável com o caractere "$"
+        memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
 
         //Pula a primeira linha do arquivo de entrada (cabeçalho)
         while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
 
         //Loop de leitura dos campos do arquivo de entrada (caractere a caractere)
         while(fread(&c, sizeof(char), 1, entrada) == 1){
+            if (c == '\r') continue;
             if(c == ',' || c == '\n'){ //Verifica a condição de final de um campo ou de um registro
                 buffer[posBuffer] = '\0'; //Sinaliza o final da string no buffer
 
@@ -316,6 +320,11 @@
                 if (c == '\n') {
                     writeRegistros(&regAtual, saida, &cabecalho);
                     fieldIndex = 0; //Os campos foram todos preenchidos, o próximo campo será o primeiro do próximo registro
+
+                     //Limpar o registro atual para a leitura do próximo registro
+                    memset(&regAtual, 0, sizeof(Registro));
+                    memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao)); //Preenche o campo de tamanho variável com o caractere "$"
+                    memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 } else {
                     fieldIndex++; //Sinaliza que a leitura de um campo foi concluída, passando para o próximo
                 }
