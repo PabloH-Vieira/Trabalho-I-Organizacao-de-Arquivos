@@ -41,14 +41,13 @@
                 //Passa o tamanho do nome da estação
                 regAtual->tamNomeEstacao = strlen(regAtual->nomeEstacao);
                 memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
-
                 break;
             case 2:
                 regAtual->codLinha = (buffer[0] == '\0') ? -1 : atoi(buffer);
                 break;
             case 3:
                 //Passa o tamanho do nome da linha
-                regAtual->tamNomeLinha = strlen(regAtual->nomeEstacao);
+                regAtual->tamNomeLinha = strlen(regAtual->nomeLinha);
                 memcpy(regAtual->nomeLinha, buffer, regAtual->tamNomeLinha);
                 break;
             case 4:
@@ -113,14 +112,18 @@
         //Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
         offset += sizeof(int);
-        memcpy(bufferRegistro + offset, registro -> nomeEstacao, &registro -> tamNomeEstacao);
-        offset += registro -> tamNomeEstacao;
+        if (registro -> tamNomeEstacao > 0){
+            memcpy(bufferRegistro + offset, registro -> nomeEstacao, registro -> tamNomeEstacao);
+            offset += registro -> tamNomeEstacao;
+        }
 
         //Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
         offset += sizeof(int);
-        memcpy(bufferRegistro + offset, registro -> nomeLinha, &registro -> tamNomeLinha);
-        offset += registro -> tamNomeLinha;
+        if (registro -> tamNomeLinha > 0){
+            memcpy(bufferRegistro + offset, registro -> nomeLinha, registro -> tamNomeLinha);
+            offset += registro -> tamNomeLinha;
+        }
 
         //Escreve o buffer do registro no arquivo de saída
         fwrite(bufferRegistro, sizeof(char), sizeof(bufferRegistro), saida);
