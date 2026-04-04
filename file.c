@@ -171,17 +171,29 @@
         //Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
         memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
-        memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
-        offset += registro->tamNomeEstacao;
-        registro -> nomeEstacao[registro->tamNomeEstacao] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
+        //Validar tamanho para evitar buffer overflow
+        if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 30) {
+            registro->tamNomeEstacao = 0;
+        }
+        if (registro->tamNomeEstacao > 0) {
+            memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
+            offset += registro->tamNomeEstacao;
+            registro -> nomeEstacao[registro->tamNomeEstacao] = '\0';
+        }
         offset += 30; //Posiciona a variável de acesso aos bytes um byte a frente do tamanho máximo do nome da estação
 
         //Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
         memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
-        memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
-        offset += registro->tamNomeLinha;
-        registro -> nomeLinha[registro->tamNomeLinha] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
+        //Validar tamanho para evitar buffer overflow
+        if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 13) {
+            registro->tamNomeLinha = 0;
+        }
+        if (registro->tamNomeLinha > 0) {
+            memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
+            offset += registro->tamNomeLinha;
+            registro -> nomeLinha[registro->tamNomeLinha] = '\0';
+        }
         
         return 1; //Retorna 1 se o registro foi lido com sucesso
     }
@@ -468,11 +480,18 @@
 
         //Loop para ler os registros
         Registro regAtual;
-        memset(&regAtual, 0, sizeof(Registro));
 
-        //A condição de parada do loop é quando a função readRegistros retornar 0, indicando que não há mais registros para ler
-        while(readRegistros(&regAtual, file))
+        while(1) {
+            memset(&regAtual, 0, sizeof(Registro));
+            //Inicializar campos variáveis com '$'
+            memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+            memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
+            
+            if (!readRegistros(&regAtual, file))
+                break;
+                
             printRegistros(&regAtual);
+        }
         fclose(file);
     }
 
@@ -513,7 +532,16 @@
             //Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
             Registro regAtual;
             int registrosEncontrados = 0; //Variável para contar o número de registros encontrados que atendem aos critérios de busca
-            while(readRegistros(&regAtual, file)){
+            
+            while(1) {
+                memset(&regAtual, 0, sizeof(Registro));
+                //Inicializar campos variáveis com '$' para evitar lixo
+                memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+                memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
+                
+                if (!readRegistros(&regAtual, file))
+                    break;
+                    
                 if (checagemCriteriosBusca(&criterios, &regAtual)){
                     printRegistros(&regAtual);
                     registrosEncontrados++;
