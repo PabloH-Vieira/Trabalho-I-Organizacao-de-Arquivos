@@ -39,7 +39,7 @@
                 break;
             case 1:
                 //Passa o tamanho do nome da estação
-                regAtual->tamNomeEstacao = strlen(regAtual->nomeEstacao);
+                regAtual->tamNomeEstacao = strlen(buffer);
                 memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
                 break;
             case 2:
@@ -47,7 +47,7 @@
                 break;
             case 3:
                 //Passa o tamanho do nome da linha
-                regAtual->tamNomeLinha = strlen(regAtual->nomeLinha);
+                regAtual->tamNomeLinha = strlen(buffer);
                 memcpy(regAtual->nomeLinha, buffer, regAtual->tamNomeLinha);
                 break;
             case 4:
@@ -72,7 +72,7 @@
 
         //Vetor com tamanho fixo de 80 bytes do registro
         char bufferRegistro[80];
-        memset(bufferRegistro, '$', sizeof(bufferRegistro)); //Inicializa o buffer do registro com zeros para evitar lixo
+        memset(bufferRegistro, '$', 80); //Inicializa o buffer do registro com zeros para evitar lixo
 
         //Variável para controlar o alocação em cada byte do vetor
         int offset = 0;
@@ -126,7 +126,7 @@
         }
 
         //Escreve o buffer do registro no arquivo de saída
-        fwrite(bufferRegistro, sizeof(char), sizeof(bufferRegistro), saida);
+        fwrite(bufferRegistro, sizeof(char), 80, saida);
         cabecalho->proxRRN++; //Incrementa o RRN
         cabecalho->nroEstacoes++; //Incrementa o número de estações
     }
@@ -134,7 +134,6 @@
     int readRegistros(Registro *registro, FILE* file){
         char bufferRegistro[80];
         int offset = 0;
-
 
         //Lê o valor do campo de removido e guarda no buffer do registro
         memcpy(&registro -> removido, bufferRegistro + offset, sizeof(char));
@@ -462,7 +461,7 @@
 
         //Loop para ler os registros
         Registro regAtual;
-        int totalRegistros = cabecalho.nroEstacoes;
+
         //A condição de parada do loop é quando a função readRegistros retornar 0, indicando que não há mais registros para ler
         while(readRegistros(&regAtual, file))
             printRegistros(&regAtual);
