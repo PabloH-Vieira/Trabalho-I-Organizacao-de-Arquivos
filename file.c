@@ -114,16 +114,18 @@
         offset += sizeof(int);
         if (registro -> tamNomeEstacao > 0){
             memcpy(bufferRegistro + offset, registro -> nomeEstacao, registro -> tamNomeEstacao);
-            offset += registro -> tamNomeEstacao;
         }
+        //Pula 30 bytes para o campo de nomeEstacao (já preenchido com '$' no memset inicial)
+        offset += 30;
 
         //Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
         offset += sizeof(int);
         if (registro -> tamNomeLinha > 0){
             memcpy(bufferRegistro + offset, registro -> nomeLinha, registro -> tamNomeLinha);
-            offset += registro -> tamNomeLinha;
         }
+        //Pula 13 bytes para o campo de nomeLinha (já preenchido com '$' no memset inicial)
+        offset += 13;
 
         //Escreve o buffer do registro no arquivo de saída
         fwrite(bufferRegistro, sizeof(char), 80, saida);
@@ -160,6 +162,10 @@
         memcpy(&registro->codProxEstacao, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
 
+        //Lê o valor do campo de distância para a próxima estação e guarda no buffer do registro
+        memcpy(&registro->distProxEstacao, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
         //Lê o valor do campo de código da linha de integração e guarda no buffer do registro
         memcpy(&registro->codLinhaIntegra, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
@@ -177,10 +183,10 @@
         }
         if (registro->tamNomeEstacao > 0) {
             memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
-            offset += registro->tamNomeEstacao;
             registro -> nomeEstacao[registro->tamNomeEstacao] = '\0';
         }
-        offset += 30; //Posiciona a variável de acesso aos bytes um byte a frente do tamanho máximo do nome da estação
+        //Pula 30 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
+        offset += 30;
 
         //Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
         memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
@@ -191,9 +197,9 @@
         }
         if (registro->tamNomeLinha > 0) {
             memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
-            offset += registro->tamNomeLinha;
             registro -> nomeLinha[registro->tamNomeLinha] = '\0';
         }
+        //Pula 13 bytes do campo de nomeLinha (para chegar ao final dos 80 bytes)
         
         return 1; //Retorna 1 se o registro foi lido com sucesso
     }
