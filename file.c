@@ -391,6 +391,9 @@
         int fieldIndex = 0; //Índice para rastrear qual campo do registro está sendo preenchido
         Registro regAtual;
         memset(&regAtual, 0, sizeof(Registro)); //Inicializa o registro atual com zeros
+        //Preenche os campos variáveis com '$' para evitar lixo não determinístico
+        memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+        memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
 
         //Pula a primeira linha do arquivo de entrada (cabeçalho)
         while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
@@ -412,6 +415,9 @@
 
                      //Limpar o registro atual para a leitura do próximo registro
                     memset(&regAtual, 0, sizeof(Registro));
+                    //Preencher campos variáveis com '$' para evitar lixo
+                    memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+                    memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 } else {
                     fieldIndex++; //Sinaliza que a leitura de um campo foi concluída, passando para o próximo
                 }
