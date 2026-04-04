@@ -38,17 +38,18 @@
                 regAtual->codEstacao = (buffer[0] == '\0') ? -1 : atoi(buffer);
                 break;
             case 1:
-                strcpy(regAtual->nomeEstacao, buffer);
                 //Passa o tamanho do nome da estação
                 regAtual->tamNomeEstacao = strlen(regAtual->nomeEstacao);
+                memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
+
                 break;
             case 2:
                 regAtual->codLinha = (buffer[0] == '\0') ? -1 : atoi(buffer);
                 break;
             case 3:
-                strcpy(regAtual->nomeLinha, buffer);
                 //Passa o tamanho do nome da linha
-                regAtual->tamNomeLinha = strlen(regAtual->nomeLinha);
+                regAtual->tamNomeLinha = strlen(regAtual->nomeEstacao);
+                memcpy(regAtual->nomeLinha, buffer, regAtual->tamNomeLinha);
                 break;
             case 4:
                 regAtual->codProxEstacao = (buffer[0] == '\0') ? -1 : atoi(buffer);
@@ -105,8 +106,9 @@
             else 
                 printf("%d ", registro->codEstacao);
 
-            //Imprime o campo de nome da estação
-            printf("%s ", registro->nomeEstacao);
+            //Imprime o campo de nome da estação, com especificação do tamanho para evitar imprimir lixo
+            //O caractere . no formato da impressão indica que a string terá um valor específicado como tamanho máximo
+            printf("%.*s ", registro->tamNomeEstacao, registro->nomeEstacao);
 
              //Imprime o campo de código da linha, com verificação de valor nulo
             if (registro->codLinha == -1)
@@ -115,7 +117,7 @@
                 printf("%d ", registro->codLinha);
 
             //Imprime o campo de nome da linha
-            printf("%s ", registro->nomeLinha);
+            printf("%.*s ", registro->tamNomeLinha, registro->nomeLinha);
 
             //Imprime o campo de código da próxima estação, com verificação de valor nulo
             if (registro->codProxEstacao == -1)
