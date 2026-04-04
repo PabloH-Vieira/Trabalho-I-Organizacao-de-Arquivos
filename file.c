@@ -71,30 +71,111 @@
         registro->removido = '0';
         registro->proximo = -1;
 
-        //Escreve o registro no arquivo de saída
-        fwrite(registro, sizeof(Registro), 1, saida);
+        //Vetor com tamanho fixo de 80 bytes do registro
+        char bufferRegistro[80];
+        memset(bufferRegistro, '$', sizeof(bufferRegistro)); //Inicializa o buffer do registro com zeros para evitar lixo
+
+        //Variável para controlar o alocação em cada byte do vetor
+        int offset = 0;
+
+        //Preenche o campo de "removido" no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->removido, sizeof(char));
+        offset += sizeof(char); 
+
+        //Preenche o campo de "próximo" no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->proximo, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo de código da estação no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->codEstacao, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo de código da linha no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->codLinha, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo de código da próxima estação no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->codProxEstacao, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo de distância para a próxima estação no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->distProxEstacao, sizeof(int));
+        offset += sizeof(int);
+
+        //Prenche o campo do código da linha de integração no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->codLinhaIntegra, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo do código da estação de integração no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->codEstIntegra, sizeof(int));
+        offset += sizeof(int);
+
+        //Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
+        offset += sizeof(int);
+        memcpy(bufferRegistro + offset, &registro -> nomeEstacao, &registro -> tamNomeEstacao);
+        offset += registro -> tamNomeEstacao;
+
+        //Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
+        memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
+        offset += sizeof(int);
+        memcpy(bufferRegistro + offset, &registro -> nomeLinha, &registro -> tamNomeLinha);
+        offset += registro -> tamNomeLinha;
+
+        //Escreve o buffer do registro no arquivo de saída
+        fwrite(bufferRegistro, sizeof(char), sizeof(bufferRegistro), saida);
         cabecalho->proxRRN++; //Incrementa o RRN
         cabecalho->nroEstacoes++; //Incrementa o número de estações
     }
 
     int readRegistros(Registro *registro, FILE* file){
-            //Lê o registro campo a campo
-            if(fread(&registro -> removido, sizeof(char), 1, file) != 1)
-                return 0; //Retorna 0 se não foi possível ler o campo de "removido", indicando o fim do arquivo
-            fread(&registro->proximo, sizeof(int), 1, file);
-            fread(&registro->codEstacao, sizeof(int), 1, file);
-            fread(&registro->codLinha, sizeof(int), 1, file);
-            fread(&registro->codProxEstacao, sizeof(int), 1, file);
-            fread(&registro->distProxEstacao, sizeof(int), 1, file);
-            fread(&registro->codLinhaIntegra, sizeof(int), 1, file);
-            fread(&registro->codEstIntegra, sizeof(int), 1, file);
-            fread(&registro->tamNomeEstacao, sizeof(int), 1, file);
-            fread(&registro->nomeEstacao, sizeof(char), registro->tamNomeEstacao, file);
-            registro->nomeEstacao[registro->tamNomeEstacao] = '\0'; //Caractere de terminação da string
-            fread(&registro->tamNomeLinha, sizeof(int), 1, file);
-            fread(&registro->nomeLinha, sizeof(char), registro->tamNomeLinha, file);
-            registro->nomeLinha[registro->tamNomeLinha] = '\0'; //Caractere de terminação da string
-            return 1; //Retorna 1 se o registro foi lido com sucesso
+        char bufferRegistro[80];
+        int offset = 0;
+
+        //Lê o valor do campo de removido e guarda no buffer do registro
+        memcpy(&registro -> removido, bufferRegistro + offset, sizeof(char));
+        offset += sizeof(char);
+
+        //Lê o valor do campo de próximo e guarda no buffer do registro
+        memcpy(&registro->proximo, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+        //Lê o valor do campo de código da estação e guarda no buffer do registro
+        memcpy(&registro->codEstacao, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+        //Lê o valor do campo de código da linha e guarda no buffer do registro
+        memcpy(&registro->codLinha, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+         //Lê o valor do campo de código da próxima estação e guarda no buffer do registro
+        memcpy(&registro->codProxEstacao, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+        //Lê o valor do campo de código da linha de integração e guarda no buffer do registro
+        memcpy(&registro->codLinhaIntegra, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+        //Lê o valor do campo de código da estação de integração e guarda no buffer do registro
+        memcpy(&registro->codEstIntegra, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+
+        //Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
+        memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+        memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
+        offset += registro->tamNomeEstacao;
+        registro -> nomeEstacao[registro->tamNomeEstacao] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
+        offset += 30; //Posiciona a variável de acesso aos bytes um byte a frente do tamanho máximo do nome da estação
+
+        //Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
+        memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
+        offset += sizeof(int);
+        memcpy(&registro->tamNomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
+        offset += registro->tamNomeLinha;
+        registro -> nomeLinha[registro->tamNomeLinha] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
+        
+        return 1; //Retorna 1 se o registro foi lido com sucesso
     }
 
     void printRegistros(Registro *registro){
