@@ -78,11 +78,11 @@
         //Variável para controlar o alocação em cada byte do vetor
         int offset = 0;
 
-        //Preenche o campo de "removido" no buffer do registro
+        //Preenche o campo de removido no buffer do registro
         memcpy(bufferRegistro + offset, &registro->removido, sizeof(char));
         offset += sizeof(char); 
 
-        //Preenche o campo de "próximo" no buffer do registro
+        //Preenche o campo de próximo no buffer do registro
         memcpy(bufferRegistro + offset, &registro->proximo, sizeof(int));
         offset += sizeof(int);
 
@@ -113,13 +113,13 @@
         //Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
         offset += sizeof(int);
-        memcpy(bufferRegistro + offset, &registro -> nomeEstacao, &registro -> tamNomeEstacao);
+        memcpy(bufferRegistro + offset, registro -> nomeEstacao, &registro -> tamNomeEstacao);
         offset += registro -> tamNomeEstacao;
 
         //Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
         offset += sizeof(int);
-        memcpy(bufferRegistro + offset, &registro -> nomeLinha, &registro -> tamNomeLinha);
+        memcpy(bufferRegistro + offset, registro -> nomeLinha, &registro -> tamNomeLinha);
         offset += registro -> tamNomeLinha;
 
         //Escreve o buffer do registro no arquivo de saída
@@ -131,6 +131,7 @@
     int readRegistros(Registro *registro, FILE* file){
         char bufferRegistro[80];
         int offset = 0;
+
 
         //Lê o valor do campo de removido e guarda no buffer do registro
         memcpy(&registro -> removido, bufferRegistro + offset, sizeof(char));
@@ -163,7 +164,7 @@
         //Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
         memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
-        memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
+        memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
         offset += registro->tamNomeEstacao;
         registro -> nomeEstacao[registro->tamNomeEstacao] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
         offset += 30; //Posiciona a variável de acesso aos bytes um byte a frente do tamanho máximo do nome da estação
@@ -171,7 +172,7 @@
         //Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
         memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
         offset += sizeof(int);
-        memcpy(&registro->tamNomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
+        memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
         offset += registro->tamNomeLinha;
         registro -> nomeLinha[registro->tamNomeLinha] = '\0'; //Adiciona um caractere de terminação no buffer (não existe no binário)
         
