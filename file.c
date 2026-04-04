@@ -135,6 +135,11 @@
         char bufferRegistro[80];
         int offset = 0;
 
+        //Lê 80 bytes do arquivo para preencher o buffer do registro
+        if (fread(bufferRegistro, sizeof(char), 80, file) != 80) {
+            return 0; //Falha na leitura ou fim do arquivo
+        }
+
         //Lê o valor do campo de removido e guarda no buffer do registro
         memcpy(&registro -> removido, bufferRegistro + offset, sizeof(char));
         offset += sizeof(char);
@@ -385,9 +390,7 @@
         char c; //Char que armazena o caractere lido do arquivo de entrada
         int fieldIndex = 0; //Índice para rastrear qual campo do registro está sendo preenchido
         Registro regAtual;
-        memset(&regAtual, 0, sizeof(Registro)); //Inicializa o registro atual, zerando seus campos
-        memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao)); //Preenche o campo de tamanho variável com o caractere "$"
-        memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
+        memset(&regAtual, 0, sizeof(Registro)); //Inicializa o registro atual com zeros
 
         //Pula a primeira linha do arquivo de entrada (cabeçalho)
         while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
@@ -409,8 +412,6 @@
 
                      //Limpar o registro atual para a leitura do próximo registro
                     memset(&regAtual, 0, sizeof(Registro));
-                    memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao)); //Preenche o campo de tamanho variável com o caractere "$"
-                    memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 } else {
                     fieldIndex++; //Sinaliza que a leitura de um campo foi concluída, passando para o próximo
                 }
@@ -461,6 +462,7 @@
 
         //Loop para ler os registros
         Registro regAtual;
+        memset(&regAtual, 0, sizeof(Registro));
 
         //A condição de parada do loop é quando a função readRegistros retornar 0, indicando que não há mais registros para ler
         while(readRegistros(&regAtual, file))
