@@ -558,3 +558,84 @@
         }
         fclose(file);
     }
+
+
+
+    void Delete(char *FileName, int nroRemocoes) {
+        FILE *arquivoBinario = fopen(FileName, "rb+");
+        if (arquivoBinario == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
+
+        //Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
+        Header cabecalho;
+        readHeader(&cabecalho, arquivoBinario);
+
+        // Verifica consistencia
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(arquivoBinario);
+            return;
+        }
+
+        // Marca como inconsistente durante a execucao 
+        cabecalho.status = '0';
+        writeHeader(&cabecalho, arquivoBinario);
+
+        //Loop para fazer as N remoções, lendo os critérios de busca e percorrendo os registros
+        for (int i = 0; i < nroRemocoes; i++) {
+            int m;
+            scanf("%d", &m);
+
+            // Zerando as flags manualmente para garantir que lixo de memoria nao interfira
+            CriteriosBusca criterios = {0};
+
+            //Preenche a struct dos critérios de busca
+            for (int j = 0; j < m; j++) {
+                char nomeCampo[50];
+                char valorCampo[100];
+                scanf("%s", nomeCampo);
+                ScanQuoteString(valorCampo); 
+                preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
+            }
+
+            Registro regAtual;
+            int rrn = 0;
+            
+            // Pula o cabecalho de 17 bytes para comecar a ler os registros
+            fseek(arquivoBinario, 17, SEEK_SET);
+
+            //Percorre os registros para encontrar os que atendem aos critérios de remoção
+            while (readRegistros(&regAtual, arquivoBinario)) {
+                // Se nao esta removido e bate com a busca 
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    
+                    // Atualiza flags de remocao 
+                    regAtual.removido = '1';
+                    regAtual.proximo = cabecalho.topo; // aponta pro antigo topo da pilha 
+                    cabecalho.topo = rrn; // atualiza o topo do cabecalho com o RRN atual 
+
+                    // Calcula a posicao exata do inicio deste registro (17 do cabecalho + rrn * 80 do tamanho fixo)
+                    long posicaoRegistro = 17 + (rrn * 80);
+                    fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
+                    
+                    // Escreve apenas os campos alterados para manter os outros bytes intactos
+                    fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
+                    fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
+                    
+                    // Retorna o ponteiro para o final do registro atual para a proxima iteracao do while nao quebrar
+                    fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
+                }
+                rrn++;
+            }
+            // Volta para o primeiro registro para a proxima busca do laco nroRemocoes
+            fseek(arquivoBinario, 17, SEEK_SET);
+        }
+
+        // Retorna status para consistente e salva cabecalho 
+        cabecalho.status = '1';
+        //Atualiza o cabeçalho no arquivo
+        writeHeader(&cabecalho, arquivoBinario);
+        fclose(arquivoBinario);
+    }
