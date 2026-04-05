@@ -34,8 +34,13 @@ int main (void){
             break;
 
         case 4:
+            //Ler o arquivo binário e os critérios de busca, marcar os registros que atendem aos critérios de busca como removidos
+            char nomeArquivoBin4[100];
+            int nroRemocoes;
+            scanf("%s", nomeArquivoBin4);
+            scanf("%d", &nroRemocoes);
+            Delete(nomeArquivoBin4, nroRemocoes);
             break;
-        
         case 5:
             break;
         
