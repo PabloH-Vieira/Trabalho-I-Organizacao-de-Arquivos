@@ -41,9 +41,14 @@ int main (void){
             scanf("%d", &nroRemocoes);
             Delete(nomeArquivoBin4, nroRemocoes);
             break;
+            
         case 5:
+            char nomeArquivoBin5[100];
+            int nroInsercoes;
+            scanf("%s", nomeArquivoBin5);
+            scanf("%d", &nroInsercoes);
+            Insert(nomeArquivoBin5, nroInsercoes);
             break;
-        
         case 6:
             break;
     }

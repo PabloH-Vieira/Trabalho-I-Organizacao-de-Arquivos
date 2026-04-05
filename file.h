@@ -55,6 +55,7 @@ int readRegistros(Registro *registro, FILE* file);
 void printRegistros(Registro *registro);
 void preencherCriteriosBusca(CriteriosBusca *criterios, char* campo, char* conteudo);
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual);
+void preencherNovoRegistro(Registro *novoReg);
 void BinarioNaTela(char *arquivo);
 void ScanQuoteString(char *str);
 
@@ -63,5 +64,5 @@ void CreateTable(char* InputFile, char* OutPutFile);
 void Select(char *FileName);
 void Where(char *FileName, int nroBuscas);
 void Delete(char *FileName, int nroRemocoes);
-
+void Insert(char *FileName, int nroInsercoes);
 #endif
