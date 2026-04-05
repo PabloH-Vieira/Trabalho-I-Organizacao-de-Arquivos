@@ -392,6 +392,46 @@ void preencherNovoRegistro(Registro *novoReg){
     novoReg->proximo = -1;
 }
 
+void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpdate[][100], int p){
+    // Aplica atualizacoes no registro em memoria
+    for (int k = 0; k < p; k++){
+        if (strcmp(camposUpdate[k], "codEstacao") == 0)
+            registro->codEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "codLinha") == 0)        
+            registro->codLinha = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "codProxEstacao") == 0)
+            registro->codProxEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "distProxEstacao") == 0)
+            registro->distProxEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "codLinhaIntegra") == 0)
+            registro->codLinhaIntegra = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "codEstIntegra") == 0)
+            registro->codEstIntegra = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+        
+        else if (strcmp(camposUpdate[k], "nomeEstacao") == 0){
+            if (strcmp(valoresUpdate[k], "NULO") == 0)
+                registro->tamNomeEstacao = 0;
+            else{
+                registro->tamNomeEstacao = strlen(valoresUpdate[k]);
+                memcpy(registro->nomeEstacao, valoresUpdate[k], registro->tamNomeEstacao);
+            }
+        }
+        else if (strcmp(camposUpdate[k], "nomeLinha") == 0){
+            if (strcmp(valoresUpdate[k], "NULO") == 0)
+                registro->tamNomeLinha = 0;
+            else{
+                registro->tamNomeLinha = strlen(valoresUpdate[k]);
+                memcpy(registro->nomeLinha, valoresUpdate[k], registro->tamNomeLinha);
+            }
+        }
+    }
+}
+
 void BinarioNaTela(char *arquivo){
     FILE *fs;
     if (arquivo == NULL || !(fs = fopen(arquivo, "rb"))){
@@ -754,39 +794,6 @@ void Insert(char *FileName, int nroInsercoes){
 
         //Escrever o registro no arquivo binário
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
-
-        /*
-        // Escreve campo a campo garantindo a ordem
-        fwrite(&novoReg.removido, sizeof(char), 1, arquivoBinario);
-        fwrite(&novoReg.proximo, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.codEstacao, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.codLinha, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.codProxEstacao, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.distProxEstacao, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.codLinhaIntegra, sizeof(int), 1, arquivoBinario);
-        fwrite(&novoReg.codEstIntegra, sizeof(int), 1, arquivoBinario);
-
-        fwrite(&novoReg.tamNomeEstacao, sizeof(int), 1, arquivoBinario);
-        if (novoReg.tamNomeEstacao > 0)
-        {
-            fwrite(novoReg.nomeEstacao, sizeof(char), novoReg.tamNomeEstacao, arquivoBinario);
-        }
-
-        fwrite(&novoReg.tamNomeLinha, sizeof(int), 1, arquivoBinario);
-        if (novoReg.tamNomeLinha > 0)
-        {
-            fwrite(novoReg.nomeLinha, sizeof(char), novoReg.tamNomeLinha, arquivoBinario);
-        }
-
-        // Calcula lixo e preenche com '$'
-        int bytesEscritos = 1 + 4 + (6 * 4) + 4 + novoReg.tamNomeEstacao + 4 + novoReg.tamNomeLinha;
-        int bytesSobrando = 80 - bytesEscritos;
-        char lixo = '$';
-        for (int k = 0; k < bytesSobrando; k++)
-        {
-            fwrite(&lixo, sizeof(char), 1, arquivoBinario);
-        }
-        */
     }
 
     cabecalho.status = '1';
@@ -794,3 +801,79 @@ void Insert(char *FileName, int nroInsercoes){
     BinarioNaTela(FileName);
     fclose(arquivoBinario);
 }
+
+void Update(char *FileName, int nroAtualizacoes) {
+        FILE *arquivoBinario = fopen(FileName, "rb+");
+        if (arquivoBinario == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
+
+        Header cabecalho;
+        readHeader(&cabecalho, arquivoBinario);
+
+        // Verifica consistencia
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(arquivoBinario);
+            return;
+        }
+
+        for (int i = 0; i < nroAtualizacoes; i++) {
+            int m;
+            scanf("%d", &m);
+            CriteriosBusca criterios = {0}; // Inicializa a struct de critérios de busca, zerando as flags
+
+            // Le as condicoes de busca (WHERE)
+            for (int j = 0; j < m; j++) {
+                char nomeCampo[50];
+                char valorCampo[100];
+                scanf("%s", nomeCampo);
+                ScanQuoteString(valorCampo);
+                preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
+            }
+
+            //Cria matrizes para guardar os campos que serão atualizados e seus respectivos valores
+            int p;
+            scanf("%d", &p);
+            char camposUpdate[10][50];
+            char valoresUpdate[10][100];
+            
+            // Le os campos a serem atualizados (SET)
+            for (int k = 0; k < p; k++) {
+                scanf("%s", camposUpdate[k]);
+                ScanQuoteString(valoresUpdate[k]);
+            }
+
+            Registro regAtual;
+            int rrn = 0;
+
+            //Criar função para pular registro (modularizar)
+            fseek(arquivoBinario, 17, SEEK_SET);
+
+            // Busca sequencial no arquivo
+            while (readRegistros(&regAtual, arquivoBinario)) {
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    // Aplica atualizacoes no registro em memoria
+                    updateRegistro(&regAtual, camposUpdate, valoresUpdate, p);
+                    
+                    // Volta para o inicio do registro para sobrescrever
+                    long posicaoRegistro = 17 + (rrn * 80);
+                    fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
+                    
+                    //Atualiza os registros atualizados no arquivo binário
+                    writeRegistros(&regAtual, arquivoBinario, &cabecalho);
+
+                    // Pula para o final deste registro para continuar o while
+                    fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
+                }
+                rrn++;
+            }
+            //Volta para o início dos registros 
+            fseek(arquivoBinario, 17, SEEK_SET);
+        }
+
+        cabecalho.status = '1';
+        writeHeader(&cabecalho, arquivoBinario);
+        fclose(arquivoBinario);
+    }

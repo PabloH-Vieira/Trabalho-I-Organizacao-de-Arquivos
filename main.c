@@ -50,6 +50,11 @@ int main (void){
             Insert(nomeArquivoBin5, nroInsercoes);
             break;
         case 6:
+            char nomeArquivoBin6[100];
+            int nroAtualizacoes;
+            scanf("%s", nomeArquivoBin6);
+            scanf("%d", &nroAtualizacoes);
+            Update(nomeArquivoBin6, nroAtualizacoes);
             break;
     }
 
