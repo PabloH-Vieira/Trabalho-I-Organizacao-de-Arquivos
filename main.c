@@ -33,14 +33,32 @@ int main (void){
             Where(nomeArquivoBin3, nroBuscas);
             break;
 
-        case 4:
+        case 4: {
+            char arquivoBinario[50];
+            int nroRemocoes;
+            scanf("%s %d", arquivoBinario, &nroRemocoes); 
+            Delete(arquivoBinario, nroRemocoes); 
+            BinarioNaTela(arquivoBinario); 
             break;
+        }
         
-        case 5:
+        case 5: {
+            char arquivoBinario5[100];
+            int nroInsercoes;
+            scanf("%s %d", arquivoBinario5, &nroInsercoes);
+            Insert(arquivoBinario5, nroInsercoes);
+            BinarioNaTela(arquivoBinario5); 
             break;
+        }
         
-        case 6:
+        case 6: {
+            char arquivoBinario6[100];
+            int nroAtualizacoes;
+            scanf("%s %d", arquivoBinario6, &nroAtualizacoes);
+            Update(arquivoBinario6, nroAtualizacoes);
+            BinarioNaTela(arquivoBinario6); // Exigencia do run.codes [cite: 374]
             break;
+        }
     }
 
 

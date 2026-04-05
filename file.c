@@ -72,136 +72,56 @@
 
         //Vetor com tamanho fixo de 80 bytes do registro
         char bufferRegistro[80];
-        memset(bufferRegistro, '$', 80); //Inicializa o buffer do registro com zeros para evitar lixo
+        memset(bufferRegistro, '$', 80); //Inicializa o buffer do registro com '$'
 
-        //Variável para controlar o alocação em cada byte do vetor
         int offset = 0;
 
-        //Preenche o campo de removido no buffer do registro
+        // Campos Fixos
         memcpy(bufferRegistro + offset, &registro->removido, sizeof(char));
         offset += sizeof(char); 
 
-        //Preenche o campo de próximo no buffer do registro
         memcpy(bufferRegistro + offset, &registro->proximo, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo de código da estação no buffer do registro
         memcpy(bufferRegistro + offset, &registro->codEstacao, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo de código da linha no buffer do registro
         memcpy(bufferRegistro + offset, &registro->codLinha, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo de código da próxima estação no buffer do registro
         memcpy(bufferRegistro + offset, &registro->codProxEstacao, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo de distância para a próxima estação no buffer do registro
         memcpy(bufferRegistro + offset, &registro->distProxEstacao, sizeof(int));
         offset += sizeof(int);
 
-        //Prenche o campo do código da linha de integração no buffer do registro
         memcpy(bufferRegistro + offset, &registro->codLinhaIntegra, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo do código da estação de integração no buffer do registro
         memcpy(bufferRegistro + offset, &registro->codEstIntegra, sizeof(int));
         offset += sizeof(int);
 
-        //Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
+        // Campos Variáveis (Contíguos)
         memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
         offset += sizeof(int);
-        if (registro -> tamNomeEstacao > 0){
-            memcpy(bufferRegistro + offset, registro -> nomeEstacao, registro -> tamNomeEstacao);
+        if (registro->tamNomeEstacao > 0){
+            memcpy(bufferRegistro + offset, registro->nomeEstacao, registro->tamNomeEstacao);
+            // Avançar o tamanho da string
+            offset += registro->tamNomeEstacao; 
         }
-        //Pula 30 bytes para o campo de nomeEstacao (já preenchido com '$' no memset inicial)
-        offset += 30;
 
-        //Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
         memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
         offset += sizeof(int);
-        if (registro -> tamNomeLinha > 0){
-            memcpy(bufferRegistro + offset, registro -> nomeLinha, registro -> tamNomeLinha);
+        if (registro->tamNomeLinha > 0){
+            memcpy(bufferRegistro + offset, registro->nomeLinha, registro->tamNomeLinha);
+            // Avançar o tamanho da string
+            offset += registro->tamNomeLinha;
         }
-        //Pula 13 bytes para o campo de nomeLinha (já preenchido com '$' no memset inicial)
-        offset += 13;
 
-        //Escreve o buffer do registro no arquivo de saída
+        // Escreve os 80 bytes exatos no arquivo (os '$' que sobraram já estão no final)
         fwrite(bufferRegistro, sizeof(char), 80, saida);
-        cabecalho->proxRRN++; //Incrementa o RRN
-        cabecalho->nroEstacoes++; //Incrementa o número de estações
-    }
-
-    int readRegistros(Registro *registro, FILE* file){
-        char bufferRegistro[80];
-        int offset = 0;
-
-        //Lê 80 bytes do arquivo para preencher o buffer do registro
-        if (fread(bufferRegistro, sizeof(char), 80, file) != 80) {
-            return 0; //Falha na leitura ou fim do arquivo
-        }
-
-        //Lê o valor do campo de removido e guarda no buffer do registro
-        memcpy(&registro -> removido, bufferRegistro + offset, sizeof(char));
-        offset += sizeof(char);
-
-        //Lê o valor do campo de próximo e guarda no buffer do registro
-        memcpy(&registro->proximo, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o valor do campo de código da estação e guarda no buffer do registro
-        memcpy(&registro->codEstacao, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o valor do campo de código da linha e guarda no buffer do registro
-        memcpy(&registro->codLinha, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-         //Lê o valor do campo de código da próxima estação e guarda no buffer do registro
-        memcpy(&registro->codProxEstacao, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o valor do campo de distância para a próxima estação e guarda no buffer do registro
-        memcpy(&registro->distProxEstacao, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o valor do campo de código da linha de integração e guarda no buffer do registro
-        memcpy(&registro->codLinhaIntegra, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o valor do campo de código da estação de integração e guarda no buffer do registro
-        memcpy(&registro->codEstIntegra, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-
-        //Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
-        memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-        //Validar tamanho para evitar buffer overflow
-        if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 30) {
-            registro->tamNomeEstacao = 0;
-        }
-        if (registro->tamNomeEstacao > 0) {
-            memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
-            registro -> nomeEstacao[registro->tamNomeEstacao] = '\0';
-        }
-        //Pula 30 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
-        offset += 30;
-
-        //Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
-        memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
-        offset += sizeof(int);
-        //Validar tamanho para evitar buffer overflow
-        if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 13) {
-            registro->tamNomeLinha = 0;
-        }
-        if (registro->tamNomeLinha > 0) {
-            memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
-            registro -> nomeLinha[registro->tamNomeLinha] = '\0';
-        }
-        //Pula 13 bytes do campo de nomeLinha (para chegar ao final dos 80 bytes)
-        
-        return 1; //Retorna 1 se o registro foi lido com sucesso
+        cabecalho->proxRRN++;
+        cabecalho->nroEstacoes++;
     }
 
     void printRegistros(Registro *registro){
@@ -391,9 +311,19 @@
 
     void CreateTable(char *inputFileName, char *outputFileName) {
         FILE* entrada = fopen(inputFileName, "r");
+        
+        // Verifica se o arquivo CSV existe 
+        if (entrada == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
 
-        //Justificar o wb+
         FILE* saida = fopen(outputFileName, "wb+");
+        if (saida == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(entrada);
+            return;
+        }
 
         //Inicializa o cabeçalho do arquivo de saída
         Header cabecalho;
@@ -409,7 +339,8 @@
         int fieldIndex = 0; //Índice para rastrear qual campo do registro está sendo preenchido
         Registro regAtual;
         memset(&regAtual, 0, sizeof(Registro)); //Inicializa o registro atual com zeros
-        //Preenche os campos variáveis com '$' para evitar lixo não determinístico
+        
+        //Preenche os campos variáveis com '$' para evitar lixo não determinístico 
         memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
         memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
 
@@ -433,7 +364,7 @@
 
                      //Limpar o registro atual para a leitura do próximo registro
                     memset(&regAtual, 0, sizeof(Registro));
-                    //Preencher campos variáveis com '$' para evitar lixo
+                    //Preencher campos variáveis com '$' para evitar lixo 
                     memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
                     memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 } else {
@@ -557,4 +488,349 @@
                 printf("Registro inexistente.\n");
         }
         fclose(file);
+    }
+
+    void Delete(char *FileName, int nroRemocoes) {
+        FILE *arquivoBinario = fopen(FileName, "rb+");
+        if (arquivoBinario == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
+
+        Header cabecalho;
+        readHeader(&cabecalho, arquivoBinario);
+
+        // Verifica consistencia
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(arquivoBinario);
+            return;
+        }
+
+        // Marca como inconsistente durante a execucao 
+        cabecalho.status = '0';
+        writeHeader(&cabecalho, arquivoBinario);
+
+        for (int i = 0; i < nroRemocoes; i++) {
+            int m;
+            scanf("%d", &m);
+            
+            CriteriosBusca criterios;
+            // Zerando as flags manualmente para garantir que lixo de memoria nao interfira
+            criterios.flag_codEstacao = 0;
+            criterios.flag_nomeEstacao = 0;
+            criterios.flag_codLinha = 0;
+            criterios.flag_nomeLinha = 0;
+            criterios.flag_codProxEstacao = 0;
+            criterios.flag_distProxEstacao = 0;
+            criterios.flag_codLinhaIntegra = 0;
+            criterios.flag_codEstIntegra = 0;
+
+            for (int j = 0; j < m; j++) {
+                char nomeCampo[50];
+                char valorCampo[100];
+                scanf("%s", nomeCampo);
+                ScanQuoteString(valorCampo); 
+                preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
+            }
+
+            Registro regAtual;
+            int rrn = 0;
+            
+            // Pula o cabecalho de 17 bytes para comecar a ler os registros
+            fseek(arquivoBinario, 17, SEEK_SET);
+
+            while (readRegistros(&regAtual, arquivoBinario)) {
+                // Se nao esta removido e bate com a busca 
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    
+                    // Atualiza flags de remocao 
+                    regAtual.removido = '1';
+                    regAtual.proximo = cabecalho.topo; // aponta pro antigo topo da pilha 
+                    cabecalho.topo = rrn; // atualiza o topo do cabecalho com o RRN atual 
+
+                    // Calcula a posicao exata do inicio deste registro (17 do cabecalho + rrn * 80 do tamanho fixo)
+                    long posicaoRegistro = 17 + (rrn * 80);
+                    fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
+                    
+                    // Escreve apenas os campos alterados para manter os outros bytes intactos
+                    fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
+                    fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
+                    
+                    // Retorna o ponteiro para o final do registro atual para a proxima iteracao do while nao quebrar
+                    fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
+                }
+                rrn++;
+            }
+            // Volta para o primeiro registro para a proxima busca do laco nroRemocoes
+            fseek(arquivoBinario, 17, SEEK_SET);
+        }
+
+        // Retorna status para consistente e salva cabecalho 
+        cabecalho.status = '1';
+        writeHeader(&cabecalho, arquivoBinario);
+        fclose(arquivoBinario);
+    }
+
+    void Insert(char *FileName, int nroInsercoes) {
+        FILE *arquivoBinario = fopen(FileName, "rb+");
+        if (arquivoBinario == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
+
+        Header cabecalho;
+        readHeader(&cabecalho, arquivoBinario);
+
+        // Verifica consistencia
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(arquivoBinario);
+            return;
+        }
+
+        // Marca como inconsistente
+        cabecalho.status = '0';
+        writeHeader(&cabecalho, arquivoBinario);
+
+        for (int i = 0; i < nroInsercoes; i++) {
+            Registro novoReg;
+            char bufferAux[100];
+
+            // Lendo os campos na ordem especificada
+            scanf("%d", &novoReg.codEstacao);
+
+            scanf("%s", bufferAux);
+            ScanQuoteString(bufferAux);
+            novoReg.tamNomeEstacao = strlen(bufferAux);
+            strcpy(novoReg.nomeEstacao, bufferAux);
+
+            scanf("%s", bufferAux);
+            if (strcmp(bufferAux, "NULO") == 0) {
+                novoReg.codLinha = -1;
+            } else {
+                novoReg.codLinha = atoi(bufferAux);
+            }
+
+            scanf("%s", bufferAux);
+            if (strcmp(bufferAux, "NULO") == 0) {
+                novoReg.tamNomeLinha = 0;
+            } else {
+                ScanQuoteString(bufferAux);
+                novoReg.tamNomeLinha = strlen(bufferAux);
+                strcpy(novoReg.nomeLinha, bufferAux);
+            }
+
+            // Leitura dos ultimos 4 campos inteiros
+            int* camposInt[] = {&novoReg.codProxEstacao, &novoReg.distProxEstacao, &novoReg.codLinhaIntegra, &novoReg.codEstIntegra};
+            for(int k = 0; k < 4; k++) {
+                scanf("%s", bufferAux);
+                if (strcmp(bufferAux, "NULO") == 0) {
+                    *camposInt[k] = -1;
+                } else {
+                    *camposInt[k] = atoi(bufferAux);
+                }
+            }
+
+            // Setando campos de controle para o novo registro
+            novoReg.removido = '0';
+            novoReg.proximo = -1;
+
+            // Lógica de reaproveitamento de espaço 
+            long posicaoEscrita;
+
+            if (cabecalho.topo == -1) {
+                // Escreve no final do arquivo
+                posicaoEscrita = 17 + (cabecalho.proxRRN * 80);
+                cabecalho.proxRRN++;
+            } else {
+                // Reaproveita o espaco do topo da pilha
+                int rrnReaproveitado = cabecalho.topo;
+                posicaoEscrita = 17 + (rrnReaproveitado * 80);
+                
+                // Le o proximo da pilha antes de sobrescrever
+                fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET); // Pula 1 byte do 'removido'
+                int proximoDaPilha;
+                fread(&proximoDaPilha, sizeof(int), 1, arquivoBinario);
+                
+                cabecalho.topo = proximoDaPilha; // Atualiza o topo do cabecalho
+            }
+
+            fseek(arquivoBinario, posicaoEscrita, SEEK_SET);
+
+            // Escreve campo a campo garantindo a ordem 
+            fwrite(&novoReg.removido, sizeof(char), 1, arquivoBinario);
+            fwrite(&novoReg.proximo, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.codEstacao, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.codLinha, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.codProxEstacao, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.distProxEstacao, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.codLinhaIntegra, sizeof(int), 1, arquivoBinario);
+            fwrite(&novoReg.codEstIntegra, sizeof(int), 1, arquivoBinario);
+            
+            fwrite(&novoReg.tamNomeEstacao, sizeof(int), 1, arquivoBinario);
+            if (novoReg.tamNomeEstacao > 0) {
+                fwrite(novoReg.nomeEstacao, sizeof(char), novoReg.tamNomeEstacao, arquivoBinario);
+            }
+            
+            fwrite(&novoReg.tamNomeLinha, sizeof(int), 1, arquivoBinario);
+            if (novoReg.tamNomeLinha > 0) {
+                fwrite(novoReg.nomeLinha, sizeof(char), novoReg.tamNomeLinha, arquivoBinario);
+            }
+
+            // Calcula lixo e preenche com '$' 
+            int bytesEscritos = 1 + 4 + (6 * 4) + 4 + novoReg.tamNomeEstacao + 4 + novoReg.tamNomeLinha;
+            int bytesSobrando = 80 - bytesEscritos;
+            char lixo = '$';
+            for (int k = 0; k < bytesSobrando; k++) {
+                fwrite(&lixo, sizeof(char), 1, arquivoBinario);
+            }
+        }
+
+        cabecalho.status = '1';
+        writeHeader(&cabecalho, arquivoBinario);
+        fclose(arquivoBinario);
+    }
+
+    void Update(char *FileName, int nroAtualizacoes) {
+        FILE *arquivoBinario = fopen(FileName, "rb+");
+        if (arquivoBinario == NULL) {
+            printf("Falha no processamento do arquivo.\n");
+            return;
+        }
+
+        Header cabecalho;
+        readHeader(&cabecalho, arquivoBinario);
+
+        // Verifica consistencia
+        if (cabecalho.status == '0') {
+            printf("Falha no processamento do arquivo.\n");
+            fclose(arquivoBinario);
+            return;
+        }
+
+        // Marca como inconsistente durante as operacoes
+        cabecalho.status = '0';
+        writeHeader(&cabecalho, arquivoBinario);
+
+        for (int i = 0; i < nroAtualizacoes; i++) {
+            int m;
+            scanf("%d", &m);
+            CriteriosBusca criterios;
+            
+            // Zera as flags de busca
+            criterios.flag_codEstacao = 0;
+            criterios.flag_nomeEstacao = 0;
+            criterios.flag_codLinha = 0;
+            criterios.flag_nomeLinha = 0;
+            criterios.flag_codProxEstacao = 0;
+            criterios.flag_distProxEstacao = 0;
+            criterios.flag_codLinhaIntegra = 0;
+            criterios.flag_codEstIntegra = 0;
+
+            // Le as condicoes de busca (WHERE)
+            for (int j = 0; j < m; j++) {
+                char nomeCampo[50];
+                char valorCampo[100];
+                scanf("%s", nomeCampo);
+                scanf("%s", valorCampo);
+                ScanQuoteString(valorCampo);
+                preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
+            }
+
+            int p;
+            scanf("%d", &p);
+            char camposUpdate[10][50];
+            char valoresUpdate[10][100];
+            
+            // Le os campos a serem atualizados (SET)
+            for (int k = 0; k < p; k++) {
+                scanf("%s", camposUpdate[k]);
+                scanf("%s", valoresUpdate[k]);
+                ScanQuoteString(valoresUpdate[k]);
+            }
+
+            Registro regAtual;
+            int rrn = 0;
+            fseek(arquivoBinario, 17, SEEK_SET);
+
+            // Busca sequencial no arquivo
+            while (readRegistros(&regAtual, arquivoBinario)) {
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    
+                    // Aplica atualizacoes no registro em memoria
+                    for (int k = 0; k < p; k++) {
+                        if (strcmp(camposUpdate[k], "codEstacao") == 0) {
+                            regAtual.codEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "codLinha") == 0) {
+                            regAtual.codLinha = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "codProxEstacao") == 0) {
+                            regAtual.codProxEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "distProxEstacao") == 0) {
+                            regAtual.distProxEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "codLinhaIntegra") == 0) {
+                            regAtual.codLinhaIntegra = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "codEstIntegra") == 0) {
+                            regAtual.codEstIntegra = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
+                        } else if (strcmp(camposUpdate[k], "nomeEstacao") == 0) {
+                            if (strcmp(valoresUpdate[k], "NULO") == 0) {
+                                regAtual.tamNomeEstacao = 0;
+                            } else {
+                                strcpy(regAtual.nomeEstacao, valoresUpdate[k]);
+                                regAtual.tamNomeEstacao = strlen(valoresUpdate[k]);
+                            }
+                        } else if (strcmp(camposUpdate[k], "nomeLinha") == 0) {
+                            if (strcmp(valoresUpdate[k], "NULO") == 0) {
+                                regAtual.tamNomeLinha = 0;
+                            } else {
+                                strcpy(regAtual.nomeLinha, valoresUpdate[k]);
+                                regAtual.tamNomeLinha = strlen(valoresUpdate[k]);
+                            }
+                        }
+                    }
+
+                    // Volta para o inicio do registro para sobrescrever
+                    long posicaoRegistro = 17 + (rrn * 80);
+                    fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
+
+                    // Escreve os campos atualizados no disco
+                    fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
+                    fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.codEstacao, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.codLinha, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.codProxEstacao, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.distProxEstacao, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.codLinhaIntegra, sizeof(int), 1, arquivoBinario);
+                    fwrite(&regAtual.codEstIntegra, sizeof(int), 1, arquivoBinario);
+                    
+                    fwrite(&regAtual.tamNomeEstacao, sizeof(int), 1, arquivoBinario);
+                    if (regAtual.tamNomeEstacao > 0) {
+                        fwrite(regAtual.nomeEstacao, sizeof(char), regAtual.tamNomeEstacao, arquivoBinario);
+                    }
+                    
+                    fwrite(&regAtual.tamNomeLinha, sizeof(int), 1, arquivoBinario);
+                    if (regAtual.tamNomeLinha > 0) {
+                        fwrite(regAtual.nomeLinha, sizeof(char), regAtual.tamNomeLinha, arquivoBinario);
+                    }
+
+                    // Preenche o lixo restante com '$'
+                    int bytesEscritos = 1 + 4 + (6 * 4) + 4 + regAtual.tamNomeEstacao + 4 + regAtual.tamNomeLinha;
+                    int bytesSobrando = 80 - bytesEscritos;
+                    char lixo = '$';
+                    for (int k = 0; k < bytesSobrando; k++) {
+                        fwrite(&lixo, sizeof(char), 1, arquivoBinario);
+                    }
+
+                    // Pula para o final deste registro para continuar o while
+                    fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
+                }
+                rrn++;
+            }
+            // Rewind para a proxima iteracao de atualizacao
+            fseek(arquivoBinario, 17, SEEK_SET);
+        }
+
+        cabecalho.status = '1';
+        writeHeader(&cabecalho, arquivoBinario);
+        fclose(arquivoBinario);
     }
