@@ -20,9 +20,9 @@ typedef struct{
     int codLinhaIntegra;
     int codEstIntegra;
     int tamNomeEstacao;
-    char nomeEstacao[30];
+    char nomeEstacao[100];
     int tamNomeLinha;
-    char nomeLinha[13];
+    char nomeLinha[100];
 }Registro;
 
 typedef struct file {

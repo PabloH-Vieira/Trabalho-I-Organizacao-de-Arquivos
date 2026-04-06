@@ -40,7 +40,10 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         case 1:
             // Passa o tamanho do nome da estação
             regAtual->tamNomeEstacao = strlen(buffer);
+            if (regAtual->tamNomeEstacao > 28) 
+                regAtual->tamNomeEstacao = 28;
             memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
+            regAtual->nomeEstacao[regAtual->tamNomeEstacao] = '\0';
             break;
         case 2:
             regAtual->codLinha = (buffer[0] == '\0') ? -1 : atoi(buffer);
@@ -48,7 +51,10 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         case 3:
             // Passa o tamanho do nome da linha
             regAtual->tamNomeLinha = strlen(buffer);
+            if (regAtual->tamNomeLinha > 15) 
+                regAtual->tamNomeLinha = 15;
             memcpy(regAtual->nomeLinha, buffer, regAtual->tamNomeLinha);
+            regAtual->nomeLinha[regAtual->tamNomeLinha] = '\0';
             break;
         case 4:
             regAtual->codProxEstacao = (buffer[0] == '\0') ? -1 : atoi(buffer);
@@ -112,27 +118,60 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
     // Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
     memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
     offset += sizeof(int);
-    if (registro->tamNomeEstacao > 0)
-    {
+    if (registro->tamNomeEstacao > 0){
         memcpy(bufferRegistro + offset, registro->nomeEstacao, registro->tamNomeEstacao);
     }
-    // Pula 30 bytes para o campo de nomeEstacao (já preenchido com '$' no memset inicial)
-    offset += 30;
+    // Pula 28 bytes para o campo de nomeEstacao
+    offset += 28;
 
     // Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
     memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
     offset += sizeof(int);
-    if (registro->tamNomeLinha > 0)
-    {
+    if (registro->tamNomeLinha > 0){
         memcpy(bufferRegistro + offset, registro->nomeLinha, registro->tamNomeLinha);
     }
-    // Pula 13 bytes para o campo de nomeLinha (já preenchido com '$' no memset inicial)
-    offset += 13;
+    // Pula 15 bytes para o campo de nomeLinha
+    offset += 15;
 
     // Escreve o buffer do registro no arquivo de saída
     fwrite(bufferRegistro, sizeof(char), 80, saida);
     cabecalho->proxRRN++;     // Incrementa o RRN
-    cabecalho->nroEstacoes++; // Incrementa o número de estações
+}
+
+int isEstacaoUnica(char nomesEstacoes[100][29], int *numEstacoes, char *nomeEstAtual){
+    for (int i = 0; i < *numEstacoes; i++) {
+        if (strcmp(nomesEstacoes[i], nomeEstAtual) == 0) {
+            return 0;
+        }
+    }
+    strcpy(nomesEstacoes[*numEstacoes], nomeEstAtual);
+    (*numEstacoes)++;
+    return 1;
+}
+
+int isParUnico(int paresEst[250][2], int *contPares, int EstA, int estB){
+    // Se o campo de próxima estação for vazio, não contabiliza
+    if (estB == -1) 
+        return 0;
+
+    // Percorre a lista de pares para buscar correspondências
+    for (int i = 0; i < *contPares; i++) {
+        // Se encontrar EstA na primeira coluna e estB na segunda, o par já existe
+        if (paresEst[i][0] == EstA && paresEst[i][1] == estB) {
+            return 0; 
+        }
+        // Se encontrar EstB na primeira coluna e EstA na segunda, o par já existe
+        if (paresEst[i][0] == estB && paresEst[i][1] == EstA) {
+            return 0; 
+        }
+    }
+
+    // Se é um par novo, adiciona nas colunas correspondentes e incrementa o total
+    paresEst[*contPares][0] = EstA;
+    paresEst[*contPares][1] = estB;
+    (*contPares)++;
+    
+    return 1;
 }
 
 int readRegistros(Registro *registro, FILE *file){
@@ -179,25 +218,27 @@ int readRegistros(Registro *registro, FILE *file){
     memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow
-    if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 30)
+    if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 28)
         registro->tamNomeEstacao = 0;
     if (registro->tamNomeEstacao > 0){
         memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
         registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
     }
-    // Pula 30 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
-    offset += 30;
+    // Pula 28 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
+    offset += 28;
 
     // Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
     memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow
-    if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 13)
+    if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 15)
         registro->tamNomeLinha = 0;
     if (registro->tamNomeLinha > 0){
         memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
         registro->nomeLinha[registro->tamNomeLinha] = '\0';
     }
+    // Pula 15 bytes do campo de nomeLinha (para chegar ao final dos 80 bytes)
+    offset += 15;
 
     return 1; // Retorna 1 se o registro foi lido com sucesso
 }
@@ -208,11 +249,10 @@ void printRegistros(Registro *registro){
         // Imprime o campo de código da estação, com verificação de valor nulo
         if (registro->codEstacao == -1)
             printf("NULO ");
-        else
+        else 
             printf("%d ", registro->codEstacao);
 
-        // Imprime o campo de nome da estação, com especificação do tamanho para evitar imprimir lixo
-        // O caractere . no formato da impressão indica que a string terá um valor específicado como tamanho máximo
+        // Imprime o campo de nome da estação
         printf("%.*s ", registro->tamNomeEstacao, registro->nomeEstacao);
 
         // Imprime o campo de código da linha, com verificação de valor nulo
@@ -229,19 +269,19 @@ void printRegistros(Registro *registro){
             printf("NULO ");
         else
             printf("%d ", registro->codProxEstacao);
-
+        
         // Imprime o campo de distância para a próxima estação, com verificação de valor nulo
         if (registro->distProxEstacao == -1)
             printf("NULO ");
         else
             printf("%d ", registro->distProxEstacao);
-
+        
         // Imprime o campo de código da linha de integração, com verificação de valor nulo
         if (registro->codLinhaIntegra == -1)
             printf("NULO ");
         else
             printf("%d ", registro->codLinhaIntegra);
-
+        
         // Imprime o campo de código da estação de integração, com verificação de valor nulo
         if (registro->codEstIntegra == -1)
             printf("NULO\n");
@@ -494,6 +534,12 @@ void CreateTable(char *inputFileName, char *outputFileName){
     FILE *entrada = fopen(inputFileName, "r");
     FILE *saida = fopen(outputFileName, "wb+");
 
+    if (entrada == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+
     // Inicializa o cabeçalho do arquivo de saída
     Header cabecalho;
     newHeader(&cabecalho);
@@ -511,6 +557,10 @@ void CreateTable(char *inputFileName, char *outputFileName){
     // Preenche os campos variáveis com '$'
     memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
     memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
+    char nomesEstacoes[200][29];    // Matriz para armazenar os nomes das estações, considerando o tamanho máximo de 28 caracteres e caractere de terminação
+    int numEstacoes = 0;          // Variável para contar o número de estações únicas
+    int paresEstacoes[500][2];   // Variável para contar o número de pares de estações únicas
+    int numParesEstacao = 0;    // Variável para contar o número de pares de estações únicas
 
     // Pula a primeira linha do arquivo de entrada (cabeçalho)
     while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
@@ -528,6 +578,11 @@ void CreateTable(char *inputFileName, char *outputFileName){
 
             // Se o registro foi completamente preenchido (quebra de linha), escreve no binário. Se não, preenche o próximo campo
             if (c == '\n'){
+                // Verificar se a estação atual é única
+                isEstacaoUnica(nomesEstacoes, &numEstacoes, regAtual.nomeEstacao);
+                // Verificar se o par de estações atual é único
+                isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
+
                 writeRegistros(&regAtual, saida, &cabecalho);
                 fieldIndex = 0; // Os campos foram todos preenchidos, o próximo campo será o primeiro do próximo registro
 
@@ -552,9 +607,13 @@ void CreateTable(char *inputFileName, char *outputFileName){
     if (fieldIndex > 0 || posBuffer > 0){
         buffer[posBuffer] = '\0';
         writeCampos(buffer, fieldIndex, &regAtual);
+        isEstacaoUnica(nomesEstacoes, &numEstacoes, regAtual.nomeEstacao);
+        isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
         writeRegistros(&regAtual, saida, &cabecalho);
     }
 
+    cabecalho.nroEstacoes = numEstacoes; // Atribui o número de estações únicas ao campo correspondente no cabeçalho
+    cabecalho.nroParesEstacao = numParesEstacao; // Atribui o número de pares de estações únicas ao campo correspondente no cabeçalho
     cabecalho.status = '1';         // Sinaliza que o arquivo foi criado corretamente
     fseek(saida, 0, SEEK_SET);      // Posiciona o ponteiro do arquivo no início para atualizar o cabeçalho
     writeHeader(&cabecalho, saida); // Atualiza os valores do cabeçalho no arquivo de saída
@@ -648,8 +707,7 @@ void Where(char *FileName, int nroBuscas){
             if (!readRegistros(&regAtual, file))
                 break;
 
-            if (checagemCriteriosBusca(&criterios, &regAtual))
-            {
+            if (checagemCriteriosBusca(&criterios, &regAtual)){
                 printRegistros(&regAtual);
                 registrosEncontrados++;
             }
@@ -875,5 +933,6 @@ void Update(char *FileName, int nroAtualizacoes) {
 
         cabecalho.status = '1';
         writeHeader(&cabecalho, arquivoBinario);
+        BinarioNaTela(FileName);
         fclose(arquivoBinario);
     }
