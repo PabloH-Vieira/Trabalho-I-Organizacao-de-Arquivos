@@ -135,7 +135,6 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
 
     // Escreve o buffer do registro no arquivo de saída
     fwrite(bufferRegistro, sizeof(char), 80, saida);
-    cabecalho->proxRRN++;     // Incrementa o RRN
 }
 
 int isEstacaoUnica(char nomesEstacoes[100][29], int *numEstacoes, char *nomeEstAtual){
@@ -218,9 +217,11 @@ int readRegistros(Registro *registro, FILE *file){
     memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow
-    if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 28)
+    if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 28){
         registro->tamNomeEstacao = 0;
-    if (registro->tamNomeEstacao > 0){
+        registro->nomeEstacao[0] = '\0';
+    }
+    else if (registro->tamNomeEstacao > 0){
         memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
         registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
     }
@@ -231,9 +232,11 @@ int readRegistros(Registro *registro, FILE *file){
     memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow
-    if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 15)
+    if (registro->tamNomeLinha < 0 || registro->tamNomeLinha > 15){
         registro->tamNomeLinha = 0;
-    if (registro->tamNomeLinha > 0){
+        registro->nomeLinha[0] = '\0';
+    }
+    else if (registro->tamNomeLinha > 0){
         memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
         registro->nomeLinha[registro->tamNomeLinha] = '\0';
     }
@@ -584,6 +587,7 @@ void CreateTable(char *inputFileName, char *outputFileName){
                 isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
 
                 writeRegistros(&regAtual, saida, &cabecalho);
+                cabecalho.proxRRN++; // Incrementa o próximo RRN disponível no cabeçalho para o próximo registro a ser escrito
                 fieldIndex = 0; // Os campos foram todos preenchidos, o próximo campo será o primeiro do próximo registro
 
                 // Limpar o registro atual para a leitura do próximo registro
@@ -610,6 +614,7 @@ void CreateTable(char *inputFileName, char *outputFileName){
         isEstacaoUnica(nomesEstacoes, &numEstacoes, regAtual.nomeEstacao);
         isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
         writeRegistros(&regAtual, saida, &cabecalho);
+        cabecalho.proxRRN++;
     }
 
     cabecalho.nroEstacoes = numEstacoes; // Atribui o número de estações únicas ao campo correspondente no cabeçalho
