@@ -834,11 +834,16 @@ void Where(char *FileName, int nroBuscas){
         fseek(file, 17, SEEK_SET);
 
             //Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
+            //Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
             Registro regAtual;
+            int registrosEncontrados = 0; //Variável para contar o número de registros encontrados que atendem aos critérios de busca
             int registrosEncontrados = 0; //Variável para contar o número de registros encontrados que atendem aos critérios de busca
             
             while(1) {
                 memset(&regAtual, 0, sizeof(Registro));
+                //Inicializar campos variáveis com '$' para evitar lixo
+                memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+                memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 //Inicializar campos variáveis com '$' para evitar lixo
                 memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
                 memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
@@ -847,12 +852,15 @@ void Where(char *FileName, int nroBuscas){
                     break;
                     
                 if (checagemCriteriosBusca(&criterios, &regAtual)){
+                if (checagemCriteriosBusca(&criterios, &regAtual)){
                     printRegistros(&regAtual);
                     registrosEncontrados++;
                 }
             }
             if (!registrosEncontrados)
+            if (!registrosEncontrados)
                 printf("Registro inexistente.\n");
+        }
         }
         fclose(file);
     }
@@ -1077,6 +1085,8 @@ void Where(char *FileName, int nroBuscas){
         }
 
         // Marca como inconsistente durante as operacoes
+
+        // Marca como inconsistente durante as operacoes
         cabecalho.status = '0';
         writeHeader(&cabecalho, arquivoBinario);
 
@@ -1096,6 +1106,7 @@ void Where(char *FileName, int nroBuscas){
             criterios.flag_codEstIntegra = 0;
 
             // Le as condicoes de busca (WHERE)
+            // Le as condicoes de busca (WHERE)
             for (int j = 0; j < m; j++) {
                 char nomeCampo[50];
                 char valorCampo[100];
@@ -1110,6 +1121,7 @@ void Where(char *FileName, int nroBuscas){
             char camposUpdate[10][50];
             char valoresUpdate[10][100];
             
+            // Le os campos a serem atualizados (SET)
             // Le os campos a serem atualizados (SET)
             for (int k = 0; k < p; k++) {
                 scanf("%s", camposUpdate[k]);
