@@ -717,12 +717,14 @@ void Where(char *FileName, int nroBuscas){
 
             if (checagemCriteriosBusca(&criterios, &regAtual)){
                 printRegistros(&regAtual);
-                printf("\n");
                 registrosEncontrados++;
             }
         }
+
         if (!registrosEncontrados)
             printf("Registro inexistente.\n");
+        
+        printf("\n");
     }
     fclose(file);
 }
