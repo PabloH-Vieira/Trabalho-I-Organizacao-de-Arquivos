@@ -45,6 +45,14 @@ typedef struct{
     Registro regBusca;
 }CriteriosBusca;
 
+//Struct para guardar o nome das estações e os pares das estações
+typedef struct{
+    char nomesEstacoes[200][29];    // Matriz para armazenar os nomes
+    int numEstacoes;          // Variável para contar o número de estações únicas
+    int paresEstacoes[500][2];   // Variável para contar o número de pares de estações únicas
+    int numParesEstacao;    // Variável para contar o número de pares de estações únicas
+}Estacoes;
+
 //Funções auxiliares
 void newHeader(Header *header);
 void writeHeader(Header *header, FILE* file);

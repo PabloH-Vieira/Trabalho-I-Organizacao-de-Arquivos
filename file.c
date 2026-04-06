@@ -137,38 +137,37 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
     fwrite(bufferRegistro, sizeof(char), 80, saida);
 }
 
-int isEstacaoUnica(char nomesEstacoes[100][29], int *numEstacoes, char *nomeEstAtual){
-    for (int i = 0; i < *numEstacoes; i++) {
-        if (strcmp(nomesEstacoes[i], nomeEstAtual) == 0) {
+int isEstacaoUnica(Estacoes *estacoes, char *nomeEstAtual){
+    if (nomeEstAtual[0] == '\0') 
+        return 0; // Se o nome da estação for vazio, não contabiliza
+
+    for (int i = 0; i < estacoes->numEstacoes; i++) {
+        if (strcmp(estacoes->nomesEstacoes[i], nomeEstAtual) == 0) {
             return 0;
         }
     }
-    strcpy(nomesEstacoes[*numEstacoes], nomeEstAtual);
-    (*numEstacoes)++;
+    // Adiciona a nova estação diretamente na struct
+    strcpy(estacoes->nomesEstacoes[estacoes->numEstacoes], nomeEstAtual);
+    estacoes->numEstacoes++;
     return 1;
 }
 
-int isParUnico(int paresEst[250][2], int *contPares, int EstA, int estB){
+int isParUnico(Estacoes *estacoes, int EstA, int estB){
     // Se o campo de próxima estação for vazio, não contabiliza
     if (estB == -1) 
         return 0;
 
     // Percorre a lista de pares para buscar correspondências
-    for (int i = 0; i < *contPares; i++) {
+    for (int i = 0; i < estacoes->numParesEstacao; i++) {
         // Se encontrar EstA na primeira coluna e estB na segunda, o par já existe
-        if (paresEst[i][0] == EstA && paresEst[i][1] == estB) {
+        if (estacoes->paresEstacoes[i][0] == EstA && estacoes->paresEstacoes[i][1] == estB)
             return 0; 
-        }
-        // Se encontrar EstB na primeira coluna e EstA na segunda, o par já existe
-        if (paresEst[i][0] == estB && paresEst[i][1] == EstA) {
-            return 0; 
-        }
     }
 
     // Se é um par novo, adiciona nas colunas correspondentes e incrementa o total
-    paresEst[*contPares][0] = EstA;
-    paresEst[*contPares][1] = estB;
-    (*contPares)++;
+    estacoes->paresEstacoes[estacoes->numParesEstacao][0] = EstA;
+    estacoes->paresEstacoes[estacoes->numParesEstacao][1] = estB;
+    estacoes->numParesEstacao++;
     
     return 1;
 }
@@ -223,8 +222,8 @@ int readRegistros(Registro *registro, FILE *file){
     }
     else if (registro->tamNomeEstacao > 0){
         memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
-        registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
     }
+    registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
     // Pula 28 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
     offset += 28;
 
@@ -238,8 +237,8 @@ int readRegistros(Registro *registro, FILE *file){
     }
     else if (registro->tamNomeLinha > 0){
         memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
-        registro->nomeLinha[registro->tamNomeLinha] = '\0';
     }
+    registro->nomeLinha[registro->tamNomeLinha] = '\0';
     // Pula 15 bytes do campo de nomeLinha (para chegar ao final dos 80 bytes)
     offset += 15;
 
@@ -542,7 +541,6 @@ void CreateTable(char *inputFileName, char *outputFileName){
         return;
     }
 
-
     // Inicializa o cabeçalho do arquivo de saída
     Header cabecalho;
     newHeader(&cabecalho);
@@ -555,15 +553,14 @@ void CreateTable(char *inputFileName, char *outputFileName){
     int posBuffer = 0;  // Índice para rastrear a posição atual no buffer
     char c;             // Char que armazena o caractere lido do arquivo de entrada
     int fieldIndex = 0; // Índice para rastrear qual campo do registro está sendo preenchido
+    
     Registro regAtual;
-    memset(&regAtual, 0, sizeof(Registro)); // Inicializa o registro atual com zeros
+    memset(&regAtual, 0, sizeof(Registro));  // Inicializa o registro atual com zeros
     // Preenche os campos variáveis com '$'
     memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
     memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
-    char nomesEstacoes[200][29];    // Matriz para armazenar os nomes das estações, considerando o tamanho máximo de 28 caracteres e caractere de terminação
-    int numEstacoes = 0;          // Variável para contar o número de estações únicas
-    int paresEstacoes[500][2];   // Variável para contar o número de pares de estações únicas
-    int numParesEstacao = 0;    // Variável para contar o número de pares de estações únicas
+
+    Estacoes nomesEPares = {0};    // Estrutura para armazenar as estações e os pares de estações únicas
 
     // Pula a primeira linha do arquivo de entrada (cabeçalho)
     while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
@@ -582,9 +579,9 @@ void CreateTable(char *inputFileName, char *outputFileName){
             // Se o registro foi completamente preenchido (quebra de linha), escreve no binário. Se não, preenche o próximo campo
             if (c == '\n'){
                 // Verificar se a estação atual é única
-                isEstacaoUnica(nomesEstacoes, &numEstacoes, regAtual.nomeEstacao);
+                isEstacaoUnica(&nomesEPares, regAtual.nomeEstacao);
                 // Verificar se o par de estações atual é único
-                isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
+                isParUnico(&nomesEPares, regAtual.codEstacao, regAtual.codProxEstacao);
 
                 writeRegistros(&regAtual, saida, &cabecalho);
                 cabecalho.proxRRN++; // Incrementa o próximo RRN disponível no cabeçalho para o próximo registro a ser escrito
@@ -611,14 +608,14 @@ void CreateTable(char *inputFileName, char *outputFileName){
     if (fieldIndex > 0 || posBuffer > 0){
         buffer[posBuffer] = '\0';
         writeCampos(buffer, fieldIndex, &regAtual);
-        isEstacaoUnica(nomesEstacoes, &numEstacoes, regAtual.nomeEstacao);
-        isParUnico(paresEstacoes, &numParesEstacao, regAtual.codEstacao, regAtual.codProxEstacao);
+        isEstacaoUnica(&nomesEPares, regAtual.nomeEstacao);
+        isParUnico(&nomesEPares, regAtual.codEstacao, regAtual.codProxEstacao);
         writeRegistros(&regAtual, saida, &cabecalho);
         cabecalho.proxRRN++;
     }
 
-    cabecalho.nroEstacoes = numEstacoes; // Atribui o número de estações únicas ao campo correspondente no cabeçalho
-    cabecalho.nroParesEstacao = numParesEstacao; // Atribui o número de pares de estações únicas ao campo correspondente no cabeçalho
+    cabecalho.nroEstacoes = nomesEPares.numEstacoes; // Atribui o número de estações únicas ao campo correspondente no cabeçalho
+    cabecalho.nroParesEstacao = nomesEPares.numParesEstacao; // Atribui o número de pares de estações únicas ao campo correspondente no cabeçalho
     cabecalho.status = '1';         // Sinaliza que o arquivo foi criado corretamente
     fseek(saida, 0, SEEK_SET);      // Posiciona o ponteiro do arquivo no início para atualizar o cabeçalho
     writeHeader(&cabecalho, saida); // Atualiza os valores do cabeçalho no arquivo de saída
@@ -687,10 +684,14 @@ void Where(char *FileName, int nroBuscas){
 
         // Ler os campos e conteúdos a serem buscados, preenchendo a struct de critérios de busca
         for (int j = 0; j < nroCampos; j++){
-            char campo[20];
-            char conteudo[21];
+            char campo[30] = {0}; //Limpa o campo para evitar lixo de memória
+            char conteudo[30] = {0}; //Limpa o conteúdo para evitar lixo de memória
             scanf("%s", campo);
-            ScanQuoteString(conteudo);
+            //A depender do campo, lê como inteiro ou string
+            if (strcmp(campo, "nomeEstacao") == 0 || strcmp(campo, "nomeLinha") == 0)
+                ScanQuoteString(conteudo);
+            else
+                scanf("%s", conteudo);
 
             // Atribuir flags aos campos a serem buscados
             preencherCriteriosBusca(&criterios, campo, conteudo);
@@ -721,6 +722,31 @@ void Where(char *FileName, int nroBuscas){
             printf("Registro inexistente.\n");
     }
     fclose(file);
+}
+
+// Função auxiliar para recalcular estações e pares únicos baseado nos registros ativos
+void recalcularEstacoesPares(FILE *arquivoBinario, Header *cabecalho){
+    Estacoes estacoes = {0};
+
+    // Posiciona no início dos registros
+    fseek(arquivoBinario, 17, SEEK_SET);
+
+    Registro regAtual;
+
+    while (readRegistros(&regAtual, arquivoBinario)){
+        // Processa apenas registros não removidos
+        if (regAtual.removido == '0'){
+            // Verifica se a estação é única
+            isEstacaoUnica(&estacoes, regAtual.nomeEstacao);
+            
+            // Verifica se o par de estações é único
+            isParUnico(&estacoes, regAtual.codEstacao, regAtual.codProxEstacao);
+        }
+    }
+
+    // Atualiza o cabeçalho com os novos valores
+    cabecalho->nroEstacoes = estacoes.numEstacoes;
+    cabecalho->nroParesEstacao = estacoes.numParesEstacao;
 }
 
 void Delete(char *FileName, int nroRemocoes){
@@ -758,7 +784,11 @@ void Delete(char *FileName, int nroRemocoes){
             char nomeCampo[50];
             char valorCampo[100];
             scanf("%s", nomeCampo);
-            ScanQuoteString(valorCampo);
+            //A depender do campo, lê como inteiro ou string
+            if (strcmp(nomeCampo, "nomeEstacao") == 0 || strcmp(nomeCampo, "nomeLinha") == 0)
+                ScanQuoteString(valorCampo);
+            else
+                scanf("%s", valorCampo);
             preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
         }
 
@@ -772,12 +802,11 @@ void Delete(char *FileName, int nroRemocoes){
         while (readRegistros(&regAtual, arquivoBinario)){
             // Se nao esta removido e bate com a busca
             if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)){
-
                 // Atualiza flags de remocao
                 regAtual.removido = '1';
                 regAtual.proximo = cabecalho.topo; // aponta pro antigo topo da pilha
                 cabecalho.topo = rrn;              // atualiza o topo do cabecalho com o RRN atual
-
+                
                 // Calcula a posicao exata do inicio deste registro (17 do cabecalho + rrn * 80 do tamanho fixo)
                 long posicaoRegistro = 17 + (rrn * 80);
                 fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
@@ -795,12 +824,15 @@ void Delete(char *FileName, int nroRemocoes){
         fseek(arquivoBinario, 17, SEEK_SET);
     }
 
+    // Recalcula estações e pares únicos baseado nos registros ainda ativos
+    recalcularEstacoesPares(arquivoBinario, &cabecalho);
+
     // Retorna status para consistente e salva cabecalho
     cabecalho.status = '1';
     // Atualiza o cabeçalho no arquivo
     writeHeader(&cabecalho, arquivoBinario);
-    BinarioNaTela(FileName);
     fclose(arquivoBinario);
+    BinarioNaTela(FileName);
 }
 
 void Insert(char *FileName, int nroInsercoes){
@@ -859,10 +891,13 @@ void Insert(char *FileName, int nroInsercoes){
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
     }
 
+    // Recalcula estações e pares únicos baseado nos registros inclusos
+    recalcularEstacoesPares(arquivoBinario, &cabecalho);
+
     cabecalho.status = '1';
     writeHeader(&cabecalho, arquivoBinario);
-    BinarioNaTela(FileName);
     fclose(arquivoBinario);
+    BinarioNaTela(FileName);
 }
 
 void Update(char *FileName, int nroAtualizacoes) {
@@ -892,7 +927,11 @@ void Update(char *FileName, int nroAtualizacoes) {
                 char nomeCampo[50];
                 char valorCampo[100];
                 scanf("%s", nomeCampo);
-                ScanQuoteString(valorCampo);
+                //A depender do campo, lê como inteiro ou string
+                if (strcmp(nomeCampo, "nomeEstacao") == 0 || strcmp(nomeCampo, "nomeLinha") == 0)
+                    ScanQuoteString(valorCampo);
+                else
+                    scanf("%s", valorCampo);
                 preencherCriteriosBusca(&criterios, nomeCampo, valorCampo);
             }
 
@@ -905,7 +944,11 @@ void Update(char *FileName, int nroAtualizacoes) {
             // Le os campos a serem atualizados (SET)
             for (int k = 0; k < p; k++) {
                 scanf("%s", camposUpdate[k]);
-                ScanQuoteString(valoresUpdate[k]);
+                //A depender do campo, lê como inteiro ou string
+                if (strcmp(camposUpdate[k], "nomeEstacao") == 0 || strcmp(camposUpdate[k], "nomeLinha") == 0)
+                    ScanQuoteString(valoresUpdate[k]);
+                else
+                    scanf("%s", valoresUpdate[k]);
             }
 
             Registro regAtual;
@@ -936,8 +979,11 @@ void Update(char *FileName, int nroAtualizacoes) {
             fseek(arquivoBinario, 17, SEEK_SET);
         }
 
+        // Recalcula estações e pares únicos baseado nos registros atualizados
+        recalcularEstacoesPares(arquivoBinario, &cabecalho);
+
         cabecalho.status = '1';
         writeHeader(&cabecalho, arquivoBinario);
-        BinarioNaTela(FileName);
         fclose(arquivoBinario);
+        BinarioNaTela(FileName);
     }
