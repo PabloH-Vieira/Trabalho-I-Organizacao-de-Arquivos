@@ -33,31 +33,29 @@ int main (void){
             Where(nomeArquivoBin3, nroBuscas);
             break;
 
-        case 4: {
-            char arquivoBinario[50];
+        case 4:
+            //Ler o arquivo binário e os critérios de busca, marcar os registros que atendem aos critérios de busca como removidos
+            char nomeArquivoBin4[100];
             int nroRemocoes;
-            scanf("%s %d", arquivoBinario, &nroRemocoes); 
-            Delete(arquivoBinario, nroRemocoes); 
-            BinarioNaTela(arquivoBinario); 
+            scanf("%s", nomeArquivoBin4);
+            scanf("%d", &nroRemocoes);
+            Delete(nomeArquivoBin4, nroRemocoes);
             break;
-        }
-        
-        case 5: {
-            char arquivoBinario5[100];
+            
+        case 5:
+            char nomeArquivoBin5[100];
             int nroInsercoes;
-            scanf("%s %d", arquivoBinario5, &nroInsercoes);
-            Insert(arquivoBinario5, nroInsercoes);
-            BinarioNaTela(arquivoBinario5); 
+            scanf("%s", nomeArquivoBin5);
+            scanf("%d", &nroInsercoes);
+            Insert(nomeArquivoBin5, nroInsercoes);
             break;
-        }
-        
-        case 6: {
-            char arquivoBinario6[100];
+        case 6:
+            char nomeArquivoBin6[100];
             int nroAtualizacoes;
-            scanf("%s %d", arquivoBinario6, &nroAtualizacoes);
-            Update(arquivoBinario6, nroAtualizacoes);
+            scanf("%s", nomeArquivoBin6);
+            scanf("%d", &nroAtualizacoes);
+            Update(nomeArquivoBin6, nroAtualizacoes);
             break;
-        }
     }
 
 

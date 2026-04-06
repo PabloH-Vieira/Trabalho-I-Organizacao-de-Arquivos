@@ -20,9 +20,9 @@ typedef struct{
     int codLinhaIntegra;
     int codEstIntegra;
     int tamNomeEstacao;
-    char nomeEstacao[30];
+    char nomeEstacao[100];
     int tamNomeLinha;
-    char nomeLinha[13];
+    char nomeLinha[100];
 }Registro;
 
 typedef struct file {
@@ -55,6 +55,8 @@ int readRegistros(Registro *registro, FILE* file);
 void printRegistros(Registro *registro);
 void preencherCriteriosBusca(CriteriosBusca *criterios, char* campo, char* conteudo);
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual);
+void preencherNovoRegistro(Registro *novoReg);
+void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpdate[][100], int p);
 void BinarioNaTela(char *arquivo);
 void ScanQuoteString(char *str);
 
