@@ -323,32 +323,52 @@ void printRegistros(Registro *registro){
 
     void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conteudo){
         //Verifica se o campo é o de código da estação. Se sim, ativa a flag e atribui o valor a ser buscado
+        //Verifica se o campo é o de código da estação. Se sim, ativa a flag e atribui o valor a ser buscado
         if (strcmp(campo, "codEstacao") == 0) {
+            criterios -> flag_codEstacao = 1;
             criterios -> flag_codEstacao = 1;
             criterios->regBusca.codEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
 
         //Verifica se o campo é o de nome da estação. Se sim, ativa a flag e atribui o valor a ser buscado
+
+        //Verifica se o campo é o de nome da estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "nomeEstacao") == 0) {
+            criterios -> flag_nomeEstacao = 1;
             criterios -> flag_nomeEstacao = 1;
             strcpy(criterios->regBusca.nomeEstacao, conteudo);
             
         //Verifica se o campo é o de código da linha. Se sim, ativa a flag e atribui o valor a ser buscado
+            
+        //Verifica se o campo é o de código da linha. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "codLinha") == 0) {
+            criterios -> flag_codLinha = 1;
             criterios -> flag_codLinha = 1;
             criterios->regBusca.codLinha = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
 
         //Verifica se o campo é o de nome da linha. Se sim, ativa a flag e atribui o valor a ser buscado
+
+        //Verifica se o campo é o de nome da linha. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "nomeLinha") == 0) {
+            criterios -> flag_nomeLinha = 1;
             criterios -> flag_nomeLinha = 1;
             strcpy(criterios->regBusca.nomeLinha, conteudo);
 
         //Verifica se o campo é o de código da próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
+
+        //Verifica se o campo é o de código da próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "codProxEstacao") == 0) {
+            criterios -> flag_codProxEstacao = 1;
             criterios -> flag_codProxEstacao = 1;
             criterios->regBusca.codProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
 
         //Verifica se o campo é o de distância para a próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
+
+        //Verifica se o campo é o de distância para a próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "distProxEstacao") == 0) {
+            criterios -> flag_distProxEstacao = 1;
+            criterios -> regBusca.distProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
+
+        //Verifica se o campo é o de código da linha de integração. Se sim, ativa a flag e atribui o valor a ser buscado
             criterios -> flag_distProxEstacao = 1;
             criterios -> regBusca.distProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
 
@@ -358,7 +378,13 @@ void printRegistros(Registro *registro){
             criterios -> regBusca.codLinhaIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
 
         //Verifica se o campo é o de código da estação de integração. Se sim, ativa a flag e atribui o valor a ser buscado
+            criterios -> flag_codLinhaIntegra = 1;
+            criterios -> regBusca.codLinhaIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
+
+        //Verifica se o campo é o de código da estação de integração. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "codEstIntegra") == 0) {
+            criterios -> flag_codEstIntegra = 1;
+            criterios -> regBusca.codEstIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
             criterios -> flag_codEstIntegra = 1;
             criterios -> regBusca.codEstIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
         } 
@@ -807,32 +833,27 @@ void Where(char *FileName, int nroBuscas){
         // Posicionar o ponteiro do arquivo no início dos registros para a execução de múltiplas buscas
         fseek(file, 17, SEEK_SET);
 
+            //Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
             Registro regAtual;
-            int registrosEncontrados = 0; 
+            int registrosEncontrados = 0; //Variável para contar o número de registros encontrados que atendem aos critérios de busca
             
             while(1) {
-                // Limpa o struct pra evitar lixo de memoria da iteracao anterior
                 memset(&regAtual, 0, sizeof(Registro));
+                //Inicializar campos variáveis com '$' para evitar lixo
+                memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+                memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 
                 if (!readRegistros(&regAtual, file))
                     break;
                     
-                // Se nao ta removido logicamente e atende aos criterios, imprime
-                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)){
+                if (checagemCriteriosBusca(&criterios, &regAtual)){
                     printRegistros(&regAtual);
                     registrosEncontrados++;
                 }
             }
-            
-            // Tratamento pra quando a busca nao retorna nada
-            if (registrosEncontrados == 0) {
+            if (!registrosEncontrados)
                 printf("Registro inexistente.\n");
-            }
         }
-        
-        // Quebra de linha final exigida na formatacao
-        printf("\n");
-        
         fclose(file);
     }
 
@@ -1054,7 +1075,8 @@ void Where(char *FileName, int nroBuscas){
             fclose(arquivoBinario);
             return;
         }
-        // Diz ser inconsistente durante a execucao
+
+        // Marca como inconsistente durante as operacoes
         cabecalho.status = '0';
         writeHeader(&cabecalho, arquivoBinario);
 
@@ -1073,7 +1095,7 @@ void Where(char *FileName, int nroBuscas){
             criterios.flag_codLinhaIntegra = 0;
             criterios.flag_codEstIntegra = 0;
 
-            // Le as condicoes de busca
+            // Le as condicoes de busca (WHERE)
             for (int j = 0; j < m; j++) {
                 char nomeCampo[50];
                 char valorCampo[100];
@@ -1088,7 +1110,7 @@ void Where(char *FileName, int nroBuscas){
             char camposUpdate[10][50];
             char valoresUpdate[10][100];
             
-            // Le os campos a serem atualizados
+            // Le os campos a serem atualizados (SET)
             for (int k = 0; k < p; k++) {
                 scanf("%s", camposUpdate[k]);
                 scanf("%s", valoresUpdate[k]);
@@ -1178,6 +1200,4 @@ void Where(char *FileName, int nroBuscas){
         cabecalho.status = '1';
         writeHeader(&cabecalho, arquivoBinario);
         fclose(arquivoBinario);
-        
-        BinarioNaTela(FileName);
     }
