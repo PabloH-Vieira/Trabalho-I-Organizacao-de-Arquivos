@@ -40,10 +40,10 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         case 1:
             // Passa o tamanho do nome da estação
             regAtual->tamNomeEstacao = strlen(buffer);
-            //if (regAtual->tamNomeEstacao > 28) 
-                //regAtual->tamNomeEstacao = 28;
+            if (regAtual->tamNomeEstacao > 28) 
+                regAtual->tamNomeEstacao = 28;
             memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
-            //regAtual->nomeEstacao[regAtual->tamNomeEstacao] = '\0';
+            regAtual->nomeEstacao[regAtual->tamNomeEstacao] = '\0';
             break;
         case 2:
             regAtual->codLinha = (buffer[0] == '\0') ? -1 : atoi(buffer);
@@ -51,10 +51,10 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         case 3:
             // Passa o tamanho do nome da linha
             regAtual->tamNomeLinha = strlen(buffer);
-            //if (regAtual->tamNomeLinha > 15) 
-                //regAtual->tamNomeLinha = 15;
+            if (regAtual->tamNomeLinha > 14) 
+                regAtual->tamNomeLinha = 14;
             memcpy(regAtual->nomeLinha, buffer, regAtual->tamNomeLinha);
-            //regAtual->nomeLinha[regAtual->tamNomeLinha] = '\0';
+            regAtual->nomeLinha[regAtual->tamNomeLinha] = '\0';
             break;
         case 4:
             regAtual->codProxEstacao = (buffer[0] == '\0') ? -1 : atoi(buffer);
@@ -116,14 +116,13 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
     offset += sizeof(int);
 
     // Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
+    offset = 29;
     memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
     offset += sizeof(int);
     if (registro->tamNomeEstacao > 0){
         memcpy(bufferRegistro + offset, registro->nomeEstacao, registro->tamNomeEstacao);
+        offset += registro->tamNomeEstacao;
     }
-    // Pula 28 bytes para o campo de nomeEstacao
-    //offset += 28;
-    offset += registro->tamNomeEstacao;
 
     // Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
     memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
@@ -131,9 +130,6 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
     if (registro->tamNomeLinha > 0){
         memcpy(bufferRegistro + offset, registro->nomeLinha, registro->tamNomeLinha);
     }
-    // Pula 15 bytes para o campo de nomeLinha
-    //offset += 15;
-    offset += registro->tamNomeLinha;
 
     // Escreve o buffer do registro no arquivo de saída
     fwrite(bufferRegistro, sizeof(char), 80, saida);
@@ -215,6 +211,7 @@ int readRegistros(Registro *registro, FILE *file){
     offset += sizeof(int);
 
     // Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
+    offset = 29;
     memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow
@@ -224,10 +221,9 @@ int readRegistros(Registro *registro, FILE *file){
     }
     else if (registro->tamNomeEstacao > 0){
         memcpy(registro->nomeEstacao, bufferRegistro + offset, registro->tamNomeEstacao);
+        registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
+        offset += registro->tamNomeEstacao;
     }
-    registro->nomeEstacao[registro->tamNomeEstacao] = '\0';
-    // Pula 28 bytes do campo de nomeEstacao (para chegar à próxima posição fixa)
-    offset += 28;
 
     // Lê o tamanho do campo de nome da linha e guarda a string na quantidade exata de bytes no buffer do registro
     memcpy(&registro->tamNomeLinha, bufferRegistro + offset, sizeof(int));
@@ -239,10 +235,8 @@ int readRegistros(Registro *registro, FILE *file){
     }
     else if (registro->tamNomeLinha > 0){
         memcpy(registro->nomeLinha, bufferRegistro + offset, registro->tamNomeLinha);
+        registro->nomeLinha[registro->tamNomeLinha] = '\0';
     }
-    registro->nomeLinha[registro->tamNomeLinha] = '\0';
-    // Pula 15 bytes do campo de nomeLinha (para chegar ao final dos 80 bytes)
-    offset += 15;
 
     return 1; // Retorna 1 se o registro foi lido com sucesso
 }
@@ -723,6 +717,7 @@ void Where(char *FileName, int nroBuscas){
 
             if (checagemCriteriosBusca(&criterios, &regAtual)){
                 printRegistros(&regAtual);
+                printf("\n");
                 registrosEncontrados++;
             }
         }
