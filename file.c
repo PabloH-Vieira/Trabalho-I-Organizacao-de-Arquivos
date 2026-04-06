@@ -40,8 +40,6 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
         case 1:
             // Passa o tamanho do nome da estação
             regAtual->tamNomeEstacao = strlen(buffer);
-            if (regAtual->tamNomeEstacao > 28) 
-                regAtual->tamNomeEstacao = 28;
             memcpy(regAtual->nomeEstacao, buffer, regAtual->tamNomeEstacao);
             regAtual->nomeEstacao[regAtual->tamNomeEstacao] = '\0';
             break;
