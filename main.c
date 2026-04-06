@@ -56,7 +56,6 @@ int main (void){
             int nroAtualizacoes;
             scanf("%s %d", arquivoBinario6, &nroAtualizacoes);
             Update(arquivoBinario6, nroAtualizacoes);
-            BinarioNaTela(arquivoBinario6); // Exigencia do run.codes [cite: 374]
             break;
         }
     }

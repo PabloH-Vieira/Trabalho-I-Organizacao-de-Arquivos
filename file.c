@@ -125,46 +125,51 @@
     }
 
     void printRegistros(Registro *registro){
-        //verifica se o registro foi removido logicamente. Se não, imprime os campos do registro
+        //verifica se o registro foi removido logicamente.
         if(registro->removido == '0'){
-            //Imprime o campo de código da estação, com verificação de valor nulo
+            //Imprime o campo de código da estação
             if (registro->codEstacao == -1)
                 printf("NULO ");
             else 
                 printf("%d ", registro->codEstacao);
 
-            //Imprime o campo de nome da estação, com especificação do tamanho para evitar imprimir lixo
-            //O caractere . no formato da impressão indica que a string terá um valor específicado como tamanho máximo
-            printf("%.*s ", registro->tamNomeEstacao, registro->nomeEstacao);
+            //Imprime o campo de nome da estação ou "NULO"
+            if (registro->tamNomeEstacao == 0)
+                printf("NULO ");
+            else
+                printf("%s ", registro->nomeEstacao);
 
-             //Imprime o campo de código da linha, com verificação de valor nulo
+             //Imprime o campo de código da linha
             if (registro->codLinha == -1)
                 printf("NULO ");
             else
                 printf("%d ", registro->codLinha);
 
-            //Imprime o campo de nome da linha
-            printf("%.*s ", registro->tamNomeLinha, registro->nomeLinha);
+            //Imprime o campo de nome da linha ou "NULO"
+            if (registro->tamNomeLinha == 0)
+                printf("NULO ");
+            else
+                printf("%s ", registro->nomeLinha);
 
-            //Imprime o campo de código da próxima estação, com verificação de valor nulo
+            //Imprime o campo de código da próxima estação
             if (registro->codProxEstacao == -1)
                 printf("NULO ");
             else
                 printf("%d ", registro->codProxEstacao);
             
-            //Imprime o campo de distância para a próxima estação, com verificação de valor nulo
+            //Imprime o campo de distância para a próxima estação
             if (registro->distProxEstacao == -1)
                 printf("NULO ");
             else
                 printf("%d ", registro->distProxEstacao);
             
-            //Imprime o campo de código da linha de integração, com verificação de valor nulo
+            //Imprime o campo de código da linha de integração
             if (registro->codLinhaIntegra == -1)
                 printf("NULO ");
             else
                 printf("%d ", registro->codLinhaIntegra);
             
-            //Imprime o campo de código da estação de integração, com verificação de valor nulo
+            //Imprime o campo de código da estação de integração
             if (registro->codEstIntegra == -1)
                 printf("NULO\n");
             else
@@ -173,45 +178,31 @@
     }
 
     void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conteudo){
-        //Verifica se o campo é o de código da estação. Se sim, ativa a flag e atribui o valor a ser buscado
+        // Seta as flags e os valores de busca dependendo do campo passado
         if (strcmp(campo, "codEstacao") == 0) {
-            criterios -> flag_codEstacao = 1;
+            criterios->flag_codEstacao = 1;
             criterios->regBusca.codEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
-
-        //Verifica se o campo é o de nome da estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "nomeEstacao") == 0) {
-            criterios -> flag_nomeEstacao = 1;
+            criterios->flag_nomeEstacao = 1;
             strcpy(criterios->regBusca.nomeEstacao, conteudo);
-            
-        //Verifica se o campo é o de código da linha. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "codLinha") == 0) {
-            criterios -> flag_codLinha = 1;
+            criterios->flag_codLinha = 1;
             criterios->regBusca.codLinha = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
-
-        //Verifica se o campo é o de nome da linha. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "nomeLinha") == 0) {
-            criterios -> flag_nomeLinha = 1;
+            criterios->flag_nomeLinha = 1;
             strcpy(criterios->regBusca.nomeLinha, conteudo);
-
-        //Verifica se o campo é o de código da próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "codProxEstacao") == 0) {
-            criterios -> flag_codProxEstacao = 1;
+            criterios->flag_codProxEstacao = 1;
             criterios->regBusca.codProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
-
-        //Verifica se o campo é o de distância para a próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
         } else if (strcmp(campo, "distProxEstacao") == 0) {
-            criterios -> flag_distProxEstacao = 1;
-            criterios -> regBusca.distProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
-
-        //Verifica se o campo é o de código da linha de integração. Se sim, ativa a flag e atribui o valor a ser buscado
+            criterios->flag_distProxEstacao = 1;
+            criterios->regBusca.distProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
         } else if (strcmp(campo, "codLinhaIntegra") == 0) {
-            criterios -> flag_codLinhaIntegra = 1;
-            criterios -> regBusca.codLinhaIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
-
-        //Verifica se o campo é o de código da estação de integração. Se sim, ativa a flag e atribui o valor a ser buscado
+            criterios->flag_codLinhaIntegra = 1;
+            criterios->regBusca.codLinhaIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
         } else if (strcmp(campo, "codEstIntegra") == 0) {
-            criterios -> flag_codEstIntegra = 1;
-            criterios -> regBusca.codEstIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
+            criterios->flag_codEstIntegra = 1;
+            criterios->regBusca.codEstIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
         } 
     }
 
@@ -394,6 +385,70 @@
         BinarioNaTela(outputFileName);
     }
 
+    int readRegistros(Registro *registro, FILE* file) {
+        char buffer[80];
+        
+        // Tenta ler o bloco exato de 80 bytes do arquivo
+        // Se não conseguir ler 80 bytes, chegou no fim do arquivo
+        if (fread(buffer, sizeof(char), 80, file) != 80) {
+            return 0; 
+        }
+
+        int offset = 0;
+
+        // Lendo campos fixos (avançando o offset exato do tamanho de cada variável)
+        memcpy(&registro->removido, buffer + offset, sizeof(char));
+        offset += sizeof(char);
+
+        memcpy(&registro->proximo, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->codEstacao, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->codLinha, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->codProxEstacao, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->distProxEstacao, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->codLinhaIntegra, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        memcpy(&registro->codEstIntegra, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        // Lendo o tamanho do nome da estação
+        memcpy(&registro->tamNomeEstacao, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        // Se a string existir, lê exatamente o tamanho dela
+        if (registro->tamNomeEstacao > 0) {
+            memcpy(registro->nomeEstacao, buffer + offset, registro->tamNomeEstacao);
+            registro->nomeEstacao[registro->tamNomeEstacao] = '\0'; // Finaliza a string pro printf funcionar
+            offset += registro->tamNomeEstacao;
+        } else {
+            registro->nomeEstacao[0] = '\0';
+        }
+
+        // Lendo o tamanho do nome da linha
+        memcpy(&registro->tamNomeLinha, buffer + offset, sizeof(int));
+        offset += sizeof(int);
+
+        // Se a string existir, lê exatamente o tamanho dela
+        if (registro->tamNomeLinha > 0) {
+            memcpy(registro->nomeLinha, buffer + offset, registro->tamNomeLinha);
+            registro->nomeLinha[registro->tamNomeLinha] = '\0'; // Finaliza a string pro printf funcionar
+        } else {
+            registro->nomeLinha[0] = '\0';
+        }
+
+        return 1;
+    }
+
     void Select(char *FileName){
         FILE *file = fopen(FileName, "rb");
         
@@ -435,58 +490,77 @@
     void Where(char *FileName, int nroBuscas){
         FILE *file = fopen(FileName, "rb");
 
-        //Acessar o cabeçalho do arquivo
         Header cabecalho;
         readHeader(&cabecalho, file);
-        //Verificar o status do arquivo
+        
+        // Confere se o arquivo nao esta corrompido
         if (cabecalho.status == '0') {
             printf("Falha no processamento do arquivo.\n");
             fclose(file);
             return;
         }
 
-        int nroCampos; //Variável para armazenar o número de campos a serem buscados em cada busca
-        //Ler os N pares de campo e conteúdo
         for(int i = 0; i < nroBuscas; i++){
-            //Lê o número de campos a serem buscados para cada busca
+            int nroCampos;
             scanf("%d", &nroCampos);
-            CriteriosBusca criterios = {0}; //Inicializa a struct de critérios de busca, zerando as flags
+            
+            CriteriosBusca criterios; 
+            memset(&criterios, 0, sizeof(CriteriosBusca));
 
-            //Ler os campos e conteúdos a serem buscados, preenchendo a struct de critérios de busca
+            // Leitura de cada par campo/valor
             for (int j = 0; j < nroCampos; j++){
                 char campo[20];
                 char conteudo[21];
                 scanf("%s", campo);
                 ScanQuoteString(conteudo);
+                
+                // Trata o caso do NULO ou string vazia para campos numericos pra nao quebrar no atoi
+                if (strcmp(conteudo, "NULO") == 0 || strlen(conteudo) == 0) {
+                    if (strcmp(campo, "codEstacao") == 0 || strcmp(campo, "codLinha") == 0 ||
+                        strcmp(campo, "codProxEstacao") == 0 || strcmp(campo, "distProxEstacao") == 0 ||
+                        strcmp(campo, "codLinhaIntegra") == 0 || strcmp(campo, "codEstIntegra") == 0) {
+                        strcpy(conteudo, "-1");
+                    }
+                }
 
-                //Atribuir flags aos campos a serem buscados
                 preencherCriteriosBusca(&criterios, campo, conteudo);
             }
 
-            //Posicionar o ponteiro do arquivo no início dos registros para a execução de múltiplas buscas
+            // Quebra de linha entre as diferentes buscas
+            if (i > 0) {
+                printf("\n");
+            }
+
+            // Reseta o ponteiro pra comecar a ler os registros
+            rewind(file);
             fseek(file, 17, SEEK_SET);
 
-            //Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
             Registro regAtual;
-            int registrosEncontrados = 0; //Variável para contar o número de registros encontrados que atendem aos critérios de busca
+            int registrosEncontrados = 0; 
             
             while(1) {
+                // Limpa o struct pra evitar lixo de memoria da iteracao anterior
                 memset(&regAtual, 0, sizeof(Registro));
-                //Inicializar campos variáveis com '$' para evitar lixo
-                memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
-                memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
                 
                 if (!readRegistros(&regAtual, file))
                     break;
                     
-                if (checagemCriteriosBusca(&criterios, &regAtual)){
+                // Se nao ta removido logicamente e atende aos criterios, imprime
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)){
                     printRegistros(&regAtual);
                     registrosEncontrados++;
                 }
             }
-            if (!registrosEncontrados)
+            
+            // Tratamento pra quando a busca nao retorna nada
+            if (registrosEncontrados == 0) {
                 printf("Registro inexistente.\n");
+            }
         }
+        
+        // Quebra de linha final exigida na formatacao
+        printf("\n");
+        
         fclose(file);
     }
 
@@ -708,8 +782,7 @@
             fclose(arquivoBinario);
             return;
         }
-
-        // Marca como inconsistente durante as operacoes
+        // Diz ser inconsistente durante a execucao
         cabecalho.status = '0';
         writeHeader(&cabecalho, arquivoBinario);
 
@@ -728,7 +801,7 @@
             criterios.flag_codLinhaIntegra = 0;
             criterios.flag_codEstIntegra = 0;
 
-            // Le as condicoes de busca (WHERE)
+            // Le as condicoes de busca
             for (int j = 0; j < m; j++) {
                 char nomeCampo[50];
                 char valorCampo[100];
@@ -743,7 +816,7 @@
             char camposUpdate[10][50];
             char valoresUpdate[10][100];
             
-            // Le os campos a serem atualizados (SET)
+            // Le os campos a serem atualizados
             for (int k = 0; k < p; k++) {
                 scanf("%s", camposUpdate[k]);
                 scanf("%s", valoresUpdate[k]);
@@ -833,4 +906,6 @@
         cabecalho.status = '1';
         writeHeader(&cabecalho, arquivoBinario);
         fclose(arquivoBinario);
+        
+        BinarioNaTela(FileName);
     }
