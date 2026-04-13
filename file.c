@@ -341,35 +341,43 @@ int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual){
     if (regAtual->removido == '1')
         return 0; // Registro foi removido logicamente, não atende aos critérios de busca
 
-    // Verifica se o campo de código da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de código da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_codEstacao == 1 && regAtual->codEstacao != criterios->regBusca.codEstacao)
         return 0;
 
-    // Verifica se o campo de nome da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de nome da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_nomeEstacao == 1 && strcmp(regAtual->nomeEstacao, criterios->regBusca.nomeEstacao) != 0)
         return 0;
 
-    // Verifica se o campo de código da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de código da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_codLinha == 1 && regAtual->codLinha != criterios->regBusca.codLinha)
         return 0;
 
-    // Verifica se o campo de nome da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de nome da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_nomeLinha == 1 && strcmp(regAtual->nomeLinha, criterios->regBusca.nomeLinha) != 0)
         return 0;
 
-    // Verifica se o campo de código da próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de código da próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_codProxEstacao == 1 && regAtual->codProxEstacao != criterios->regBusca.codProxEstacao)
         return 0;
 
-    // Verifica se o campo de distância para a próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de distância para a próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_distProxEstacao == 1 && regAtual->distProxEstacao != criterios->regBusca.distProxEstacao)
         return 0;
 
-    // Verifica se o campo de código da linha de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de código da linha de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_codLinhaIntegra == 1 && regAtual->codLinhaIntegra != criterios->regBusca.codLinhaIntegra)
         return 0;
 
-    // Verifica se o campo de código da estação de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. Se sim, o registro não atende aos critérios de busca
+    // Verifica se o campo de código da estação de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
+    // Se sim, o registro não atende aos critérios de busca
     if (criterios->flag_codEstIntegra == 1 && regAtual->codEstIntegra != criterios->regBusca.codEstIntegra)
         return 0;
 
@@ -474,6 +482,32 @@ void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpd
             }
         }
     }
+}
+
+void recalcularEstacoesPares(FILE *arquivoBinario, Header *cabecalho){
+    // Estrutura para armazenar as estações e os pares de estações únicas encontrados durante a leitura dos registros
+    Estacoes estacoes = {0};
+
+    // Posiciona no início dos registros
+    fseek(arquivoBinario, 17, SEEK_SET);
+
+    Registro regAtual;
+
+    // Loop que lê cada registro do arquivo binário e atualiza as contagens de estações e pares de estações únicas
+    while (readRegistros(&regAtual, arquivoBinario)){
+        // Processa apenas registros não removidos
+        if (regAtual.removido == '0'){
+            // Verifica se a estação é única
+            isEstacaoUnica(&estacoes, regAtual.nomeEstacao);
+            
+            // Verifica se o par de estações é único
+            isParUnico(&estacoes, regAtual.codEstacao, regAtual.codProxEstacao);
+        }
+    }
+
+    // Atualiza o cabeçalho com os novos valores
+    cabecalho->nroEstacoes = estacoes.numEstacoes;
+    cabecalho->nroParesEstacao = estacoes.numParesEstacao;
 }
 
 void BinarioNaTela(char *arquivo){
@@ -607,12 +641,19 @@ void CreateTable(char *inputFileName, char *outputFileName){
         }
     }
 
+    // Verifica se há dados pendentes no buffer ou campo incompleto no fim do arquivo
+    // por exemplo quando o último campo é ...
     if (fieldIndex > 0 || posBuffer > 0){
+        // Sinaliza o final da string no buffer para o último campo
         buffer[posBuffer] = '\0';
         writeCampos(buffer, fieldIndex, &regAtual);
+        // Verificar se a estação atual é única
         isEstacaoUnica(&nomesEPares, regAtual.nomeEstacao);
+        // Verificar se o par de estações atual é único
         isParUnico(&nomesEPares, regAtual.codEstacao, regAtual.codProxEstacao);
+        // Escreve o último registro no arquivo binário de saída
         writeRegistros(&regAtual, saida, &cabecalho);
+        // Incrementa o próximo RRN disponível no cabeçalho para o próximo registro a ser escrito
         cabecalho.proxRRN++;
     }
 
@@ -712,9 +753,11 @@ void Where(char *FileName, int nroBuscas){
             memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
             memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
 
+            // Loop para preencher registros e verificar se está no final do arquivo
             if (!readRegistros(&regAtual, file))
                 break;
 
+            // Comparar registro atual com os critérios de busca
             if (checagemCriteriosBusca(&criterios, &regAtual)){
                 printRegistros(&regAtual);
                 registrosEncontrados++;
@@ -727,31 +770,6 @@ void Where(char *FileName, int nroBuscas){
         printf("\n");
     }
     fclose(file);
-}
-
-// Função auxiliar para recalcular estações e pares únicos baseado nos registros ativos
-void recalcularEstacoesPares(FILE *arquivoBinario, Header *cabecalho){
-    Estacoes estacoes = {0};
-
-    // Posiciona no início dos registros
-    fseek(arquivoBinario, 17, SEEK_SET);
-
-    Registro regAtual;
-
-    while (readRegistros(&regAtual, arquivoBinario)){
-        // Processa apenas registros não removidos
-        if (regAtual.removido == '0'){
-            // Verifica se a estação é única
-            isEstacaoUnica(&estacoes, regAtual.nomeEstacao);
-            
-            // Verifica se o par de estações é único
-            isParUnico(&estacoes, regAtual.codEstacao, regAtual.codProxEstacao);
-        }
-    }
-
-    // Atualiza o cabeçalho com os novos valores
-    cabecalho->nroEstacoes = estacoes.numEstacoes;
-    cabecalho->nroParesEstacao = estacoes.numParesEstacao;
 }
 
 void Delete(char *FileName, int nroRemocoes){
@@ -847,6 +865,7 @@ void Insert(char *FileName, int nroInsercoes){
         return;
     }
 
+    // Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
     Header cabecalho;
     readHeader(&cabecalho, arquivoBinario);
 
@@ -912,6 +931,7 @@ void Update(char *FileName, int nroAtualizacoes) {
             return;
         }
 
+        // Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
         Header cabecalho;
         readHeader(&cabecalho, arquivoBinario);
 
