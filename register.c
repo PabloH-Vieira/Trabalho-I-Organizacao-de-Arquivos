@@ -117,15 +117,10 @@ int readRegistros(Registro *registro, FILE *file){
     }
 
     char bufferRegistro[79]; // Buffer para armazenar os bytes do registro lidos do arquivo
-    int offset = 0;
-
-    // Lê 80 bytes do arquivo para preencher o buffer do registro
     if (fread(bufferRegistro, sizeof(char), 79, file) != 79)
-        return 0; // Falha na leitura ou fim do arquivo
-
-    // Lê o valor do campo de removido e guarda no buffer do registro
-    memcpy(&registro->removido, bufferRegistro + offset, sizeof(char));
-    offset += sizeof(char);
+        return 0; // Falha na leitura
+    
+    int offset = 0;
 
     // Lê o valor do campo de próximo e guarda no buffer do registro
     memcpy(&registro->proximo, bufferRegistro + offset, sizeof(int));
@@ -156,7 +151,7 @@ int readRegistros(Registro *registro, FILE *file){
     offset += sizeof(int);
 
     // Lê o tamanho do campo de nome da estação e guarda a string na quantidade exata de bytes no buffer do registro
-    offset = 29;
+    offset = 28;
     memcpy(&registro->tamNomeEstacao, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
     // Validar tamanho para evitar buffer overflow

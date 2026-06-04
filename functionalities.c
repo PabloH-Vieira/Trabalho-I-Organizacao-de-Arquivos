@@ -121,6 +121,7 @@ void Select(char *FileName){
     }
 
     Registro regAtual;
+    int registrosEncontrados = 0; // Variável para contar o número de registros encontrados para imprimir a mensagem de "Registro inexistente" caso nenhum registro seja encontrado
 
     // Loop para ler os registros
     while (1){
@@ -131,7 +132,10 @@ void Select(char *FileName){
             continue; // Registro removido, pula para o próximo registro
 
         printRegistros(&regAtual);
+        registrosEncontrados++;
     }
+    if (!registrosEncontrados)
+        printf("Registro inexistente.\n");
     fclose(file);
 }
 
@@ -165,10 +169,10 @@ void Where(char *FileName, int nroBuscas){
         int registrosEncontrados = 0; // Variável para contar o número de registros encontrados que atendem aos critérios de busca
 
         while (1){
-            memset(&regAtual, 0, sizeof(Registro));
+            //memset(&regAtual, 0, sizeof(Registro));
             // Inicializar campos variáveis com '$' para evitar lixo
-            memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
-            memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
+            //memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
+            //memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
 
             // Loop para preencher registros e verificar se está no final do arquivo
             if (!readRegistros(&regAtual, file))
