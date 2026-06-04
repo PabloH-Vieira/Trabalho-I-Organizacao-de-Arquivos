@@ -1,4 +1,8 @@
 #include "file.h"
+#include "functionalities.h"
+#include "register.h"
+#include "header.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 

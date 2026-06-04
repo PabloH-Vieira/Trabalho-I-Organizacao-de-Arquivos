@@ -1,5 +1,12 @@
-#include "register.h"
+#ifndef UTILS_H
+#define UTILS_H
+
 #include "header.h"
+#include "register.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 typedef struct{
     //Flags para indicar quais campos são critérios de busca
@@ -45,3 +52,5 @@ void recalcularEstacoesPares(FILE *arquivoBinario, Header *cabecalho);
 // Funções fornecidas
 void BinarioNaTela(char *arquivo);
 void ScanQuoteString(char *str);
+
+#endif

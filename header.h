@@ -1,3 +1,6 @@
+#ifndef HEADER_H
+#define HEADER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,3 +21,5 @@ void writeHeader(Header *header, FILE* file);
 
 // Função que lê o cabeçalho do arquivo binário e preenche a struct Header
 void readHeader(Header *header, FILE* file);
+
+#endif

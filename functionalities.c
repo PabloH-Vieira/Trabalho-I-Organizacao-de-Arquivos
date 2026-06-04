@@ -1,8 +1,4 @@
 #include "functionalities.h"
-#include "register.h"
-#include "header.h"
-#include "utils.h"
-#include <stdlib.h>
 
 void CreateTable(char *inputFileName, char *outputFileName){
     FILE *entrada = fopen(inputFileName, "r");

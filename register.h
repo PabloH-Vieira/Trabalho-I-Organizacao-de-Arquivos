@@ -1,4 +1,10 @@
+#ifndef REGISTER_H
+#define REGISTER_H
+
 #include "header.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct{
     char removido;
@@ -32,3 +38,5 @@ void preencherNovoRegistro(Registro *novoReg);
 
 // Função que atualiza os campos de um registro com os valores fornecidos pelo usuário para atualização
 void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpdate[][100], int p);
+
+#endif

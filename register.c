@@ -1,8 +1,5 @@
 #include "register.h"
-#include "header.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "utils.h"
 
 void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
     switch (fieldIndex){
@@ -42,6 +39,70 @@ void writeCampos(char buffer[256], int fieldIndex, Registro *regAtual){
             regAtual->codEstIntegra = (buffer[0] == '\0') ? -1 : atoi(buffer);
             break;
     }
+}
+
+void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
+    // Preenche campos não presentes no CSV
+    registro->removido = '0';
+    registro->proximo = -1;
+
+    // Vetor com tamanho fixo de 80 bytes do registro
+    char bufferRegistro[80];
+    memset(bufferRegistro, '$', 80); // Inicializa o buffer do registro com zeros para evitar lixo
+
+    // Variável para controlar o alocação em cada byte do vetor
+    int offset = 0;
+
+    // Preenche o campo de removido no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->removido, sizeof(char));
+    offset += sizeof(char);
+
+    // Preenche o campo de próximo no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->proximo, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo de código da estação no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->codEstacao, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo de código da linha no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->codLinha, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo de código da próxima estação no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->codProxEstacao, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo de distância para a próxima estação no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->distProxEstacao, sizeof(int));
+    offset += sizeof(int);
+
+    // Prenche o campo do código da linha de integração no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->codLinhaIntegra, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo do código da estação de integração no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->codEstIntegra, sizeof(int));
+    offset += sizeof(int);
+
+    // Preenche o campo do tamanho do nome da estação e a quantidade exata de bytes da string no buffer do registro
+    offset = 29;
+    memcpy(bufferRegistro + offset, &registro->tamNomeEstacao, sizeof(int));
+    offset += sizeof(int);
+    if (registro->tamNomeEstacao > 0){
+        memcpy(bufferRegistro + offset, registro->nomeEstacao, registro->tamNomeEstacao);
+        offset += registro->tamNomeEstacao;
+    }
+
+    // Preenche o campo do tamanho do nome da linha e a quantidade exata de bytes da string no buffer do registro
+    memcpy(bufferRegistro + offset, &registro->tamNomeLinha, sizeof(int));
+    offset += sizeof(int);
+    if (registro->tamNomeLinha > 0){
+        memcpy(bufferRegistro + offset, registro->nomeLinha, registro->tamNomeLinha);
+    }
+
+    // Escreve o buffer do registro no arquivo de saída
+    fwrite(bufferRegistro, sizeof(char), 80, saida);
 }
 
 int readRegistros(Registro *registro, FILE *file){
