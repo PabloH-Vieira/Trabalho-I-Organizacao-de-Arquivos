@@ -7,7 +7,7 @@
 
 int main (void){
     //Ler a funcionalidade a ser executada
-    int funcionalidade;
+    int funcionalidade = 0;
     scanf("%d", &funcionalidade);
 
     switch(funcionalidade){

@@ -261,9 +261,6 @@ void Delete(char *FileName, int nroRemocoes){
         fseek(arquivoBinario, 17, SEEK_SET);
     }
 
-    // Recalcula estações e pares únicos baseado nos registros ainda ativos
-    recalcularEstacoesPares(arquivoBinario, &cabecalho);
-
     // Retorna status para consistente e salva cabecalho
     cabecalho.status = '1';
     // Atualiza o cabeçalho no arquivo
@@ -330,7 +327,7 @@ void Insert(char *FileName, int nroInsercoes){
     }
 
     // Recalcula estações e pares únicos baseado nos registros inclusos
-    recalcularEstacoesPares(arquivoBinario, &cabecalho);
+    // recalcularEstacoesPares(arquivoBinario, &cabecalho);
 
     cabecalho.status = '1';
     writeHeader(&cabecalho, arquivoBinario);
@@ -407,7 +404,7 @@ void Update(char *FileName, int nroAtualizacoes) {
         }
 
         // Recalcula estações e pares únicos baseado nos registros atualizados
-        recalcularEstacoesPares(arquivoBinario, &cabecalho);
+        //recalcularEstacoesPares(arquivoBinario, &cabecalho);
 
         cabecalho.status = '1';
         writeHeader(&cabecalho, arquivoBinario);
