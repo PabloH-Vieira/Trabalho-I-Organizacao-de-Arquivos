@@ -23,13 +23,16 @@ typedef struct binaryNode{
 
 // Funções de manipulação da árvore binária
 // função para ler o cabeçalho do arquivo binário
-void readBinaryHeader(binaryHeader *header, FILE *file);
+void readBinaryHeader(binaryHeader *header, FILE *file, int rrn);
+
+// Função para criar um novo cabeçalho para o arquivo de índice
+void createBinaryHeader(binaryHeader *header);
 
 // função para escrever o cabeçalho no arquivo binário
 void writeBinaryHeader(binaryHeader *header, FILE *file);
 
 // função para ler um nó da árvore binária
-void readBinaryNode(binaryNode *node, FILE *file);
+int readBinaryNode(binaryNode *node, FILE *file, int rrn);
 
 // função para escrever um nó da árvore binária
 void writeBinaryNode(binaryNode *node, FILE *file);

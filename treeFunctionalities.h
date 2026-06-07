@@ -2,6 +2,7 @@
 #define TREEFUNCTIONALITIES_H
 #include "binaryTree.h"
 #include "treeUtils.h"
+#include "utils.h"
 
 // Cria o arquivo de índice a partir do arquivo binário, usando o campo de codEstacao
 void createIndex(char *binFileName, char *indexFileName);

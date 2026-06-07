@@ -5,8 +5,8 @@
 // Função para promover um nó filho para a posição de um nó intermediário
 void promoteNode(FILE *file, binaryNode *node, int posicaoNode, int posicaoFilhoPromovido, binaryHeader *header);
 
-// Função para inserir um novo nó na árvore binária
-void insertNode(FILE *file, int rrnRegistro, binaryHeader *header);
+// Função para inserir uma nova chave no arquivo de índice
+void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header);
 
 // Função que divide as chaves de um nó
 void splitNode(FILE *file, binaryNode *node, int posicaoNode, int rrnRegistro, binaryHeader *header);
