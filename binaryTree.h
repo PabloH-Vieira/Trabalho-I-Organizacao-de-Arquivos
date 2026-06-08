@@ -35,7 +35,7 @@ void writeBinaryHeader(binaryHeader *header, FILE *file);
 int readBinaryNode(binaryNode *node, FILE *file, int rrn);
 
 // função para escrever um nó da árvore binária
-void writeBinaryNode(binaryNode *node, FILE *file);
+void writeBinaryNode(binaryNode *node, FILE *file, int rrn);
 
 // função que cria um nó vazio
 binaryNode* createEmptyBinaryNode();
