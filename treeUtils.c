@@ -240,12 +240,6 @@ static void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
     writeBinaryNode(&no, file, rrn);
 }
 
-/*
- * Encontra o sucessor imediato de uma chave num nó interno.
- * O sucessor é a menor chave na subárvore à direita, ou seja,
- * descemos sempre pelo filho mais à esquerda até chegar numa folha.
- * Retorna o RRN da folha onde o sucessor está.
- */
 static int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, int *ptrSucc) {
     int rrnAtual = rrnFilhoDireita;
     binaryNode no;
@@ -262,16 +256,6 @@ static int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, in
     return rrnAtual;
 }
 
-/*
- * Redistribuição entre dois nós irmãos via pai.
- * Tenta redistribuir do irmão direito primeiro, depois do esquerdo.
- * A distribuição é a mais uniforme possível — a chave promovida
- * é a primeira chave do nó direito após a redistribuição.
- *
- * rrnPai      — RRN do nó pai
- * indiceFIlho — índice do filho com underflow no vetor filhos[] do pai
- * lado        — 0 para redistribuir com direito, 1 para redistribuir com esquerdo
- */
 static void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
@@ -351,14 +335,6 @@ static void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     writeBinaryNode(&noDir, file, rrnDir);
 }
 
-/*
- * Concatenação de dois nós irmãos.
- * Sempre junta no nó esquerdo e destrói o direito (empilha como removido).
- * A chave separadora do pai desce para o nó esquerdo junto com
- * todas as chaves do nó direito.
- *
- * Retorna 1 se o pai ficou com underflow após a concatenação, 0 caso contrário.
- */
 static int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
@@ -406,12 +382,6 @@ static int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *hea
     return (pai.nroChaves < (ORDEM / 2) - 1);
 }
 
-/*
- * Remoção recursiva. Desce até encontrar a chave, remove, e na
- * subida trata underflow com redistribuição ou concatenação.
- *
- * Retorna 1 se o nó atual ficou com underflow, 0 caso contrário.
- */
 static int removerRecursivo(FILE *file, int rrnAtual, int rrnPai, int indiceNoPai, int chave, binaryHeader *header) {
     if (rrnAtual == -1)
         return 0; // chave não encontrada
@@ -496,10 +466,6 @@ static int removerRecursivo(FILE *file, int rrnAtual, int rrnPai, int indiceNoPa
     return concatenar(file, rrnPai, indiceNoPai + 1, header);
 }
 
-/*
- * Ponto de entrada da remoção. Chama a remoção recursiva e
- * trata o caso especial em que a raiz fica vazia após a concatenação.
- */
 void removeKey(FILE *file, int chave, binaryHeader *header) {
     if (header->noRaiz == -1)
         return; // árvore vazia
