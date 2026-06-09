@@ -29,7 +29,7 @@ void readBinaryHeader(binaryHeader *header, FILE *file);
 void createBinaryHeader(binaryHeader *header);
 
 // função para escrever o cabeçalho no arquivo binário
-void writeBinaryHeader(binaryHeader *header, FILE *file, int rrn);
+void writeBinaryHeader(binaryHeader *header, FILE *file);
 
 // função para ler um nó da árvore binária
 int readBinaryNode(binaryNode *node, FILE *file, int rrn);
