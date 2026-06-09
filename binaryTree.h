@@ -34,9 +34,6 @@ void writeBinaryHeader(binaryHeader *header, FILE *file);
 // função para ler um nó da árvore binária
 int readBinaryNode(binaryNode *node, FILE *file, int rrn);
 
-// Função para criar uma árvore vazia
-int createEmptyTree();
-
 // função para escrever um nó da árvore binária
 void writeBinaryNode(binaryNode *node, FILE *file, int rrn);
 

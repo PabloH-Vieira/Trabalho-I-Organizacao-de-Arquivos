@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "binaryTree.h"
-
 #define TAMANHO_CABECALHO 17
 #define TAMANHO_NO 53
 #define ORDEM 4        // m = 4, máximo de 4 filhos por nó
@@ -12,14 +11,14 @@
  * Se houver nó removido na pilha, reaproveit ele.
  * Caso contrário, usa o proxRRN e incrementa.
  */
-static int alocarRRN(FILE *file, binaryHeader *header);
+int alocarRRN(FILE *file, binaryHeader *header);
 
 /*
  * Insere a chave e o ponteiro para o registro na posição correta
  * dentro do nó, mantendo a ordem crescente. Também empurra o
  * filho à direita para a posição certa caso venha de um split.
  */
-static void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita);
+void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita);
 
 /*
  * Faz o split de um nó cheio. Com m=4, cada nó tem no máximo 3 chaves.
@@ -30,7 +29,7 @@ static void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita);
  *
  * A chave promovida é a primeira do nó direito, conforme especificação.
  */
-static void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
+void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
                       int *chavePromovida, int *ptrPromovido, int *rrnNovoDireita, binaryHeader *header);
 
 /*
@@ -40,7 +39,7 @@ static void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, 
  * Retorna 1 se houve promoção (split), 0 caso contrário.
  * A chave/ptr/filho promovidos são retornados pelos ponteiros.
  */
-static int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido, 
+int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido, 
                             int *rrnDireita, binaryHeader *header);
 
 /*

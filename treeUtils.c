@@ -1,11 +1,11 @@
 #include "treeUtils.h"
-
+#include "binaryTree.h"
 #define TAMANHO_CABECALHO 17
 #define TAMANHO_NO 53
 #define ORDEM 4        // m = 4, máximo de 4 filhos por nó
 #define MAX_CHAVES 3   // máximo de 3 chaves por nó
 
-static int alocarRRN(FILE *file, binaryHeader *header) {
+int alocarRRN(FILE *file, binaryHeader *header) {
     int rrn;
     if (header->topo != -1) {
         // reaproveta o topo da pilha de removidos
@@ -21,7 +21,7 @@ static int alocarRRN(FILE *file, binaryHeader *header) {
     return rrn;
 }
 
-static void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
+void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
     int i = node->nroChaves - 1;
 
     // desloca as chaves maiores para abrir espaço
@@ -39,7 +39,7 @@ static void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) 
 }
 
 
-static void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
+void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
                       int *chavePromovida, int *ptrPromovido, int *rrnNovoDireita, binaryHeader *header) {
 
     // vetor temporário com as 4 chaves (3 antigas + 1 nova)
@@ -87,27 +87,25 @@ static void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, 
     noEsq->filhos[MAX_CHAVES] = -1;
 
     // cria o nó direito com as chaves depois do meio
-    binaryNode *noDir;
+    binaryNode noDir;
     createEmptyBinaryNode(&noDir);
-    noDir->tipoNo    = noEsq->tipoNo; // mesmo tipo (folha ou interno)
-    noDir->nroChaves = MAX_CHAVES - meio; // 1 chave
+    noDir.tipoNo    = noEsq->tipoNo; // mesmo tipo (folha ou interno)
+    noDir.nroChaves = MAX_CHAVES - meio; // 1 chave
 
-    for (int j = 0; j < noDir->nroChaves; j++) {
-        noDir->chaves[j]    = chaves[meio + 1 + j];
-        noDir->ponteiros[j] = ptrs[meio + 1 + j];
-        noDir->filhos[j]    = filhos[meio + 1 + j];
+    for (int j = 0; j < noDir.nroChaves; j++) {
+        noDir.chaves[j]    = chaves[meio + 1 + j];
+        noDir.ponteiros[j] = ptrs[meio + 1 + j];
+        noDir.filhos[j]    = filhos[meio + 1 + j];
     }
-    noDir->filhos[noDir->nroChaves] = filhos[ORDEM];
+    noDir.filhos[noDir.nroChaves] = filhos[ORDEM];
 
     // aloca RRN para o nó direito e escreve no arquivo
     *rrnNovoDireita = alocarRRN(file, header);
-    writeBinaryNode(noDir, file, *rrnNovoDireita);
+    writeBinaryNode(&noDir, file, *rrnNovoDireita);
     writeBinaryNode(noEsq, file, rrnEsq);
-
-    free(noDir);
 }
 
-static int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido,
+int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido,
                             int *rrnDireita, binaryHeader *header) {
     // chegou numa subárvore vazia — promove a chave diretamente
     if (rrnAtual == -1) {
@@ -165,17 +163,16 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
 
     // árvore vazia — cria a primeira folha que também é a raiz
     if (header->noRaiz == -1) {
-        binaryNode *raiz;
+        binaryNode raiz;
         createEmptyBinaryNode(&raiz);
-        raiz->tipoNo      = -1; // folha e raiz ao mesmo tempo
-        raiz->chaves[0]   = chave;
-        raiz->ponteiros[0] = rrnRegistro;
-        raiz->nroChaves   = 1;
+        raiz.tipoNo      = -1; // folha e raiz ao mesmo tempo
+        raiz.chaves[0]   = chave;
+        raiz.ponteiros[0] = rrnRegistro;
+        raiz.nroChaves   = 1;
 
         int rrn = alocarRRN(file, header);
         header->noRaiz = rrn;
-        writeBinaryNode(raiz, file, rrn);
-        free(raiz);
+        writeBinaryNode(&raiz, file, rrn);
         return;
     }
 
@@ -185,27 +182,25 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
 
     if (houveSplit) {
         // split chegou até a raiz — cria uma nova raiz
-        binaryNode *novaRaiz;
+        binaryNode novaRaiz;
         createEmptyBinaryNode(&novaRaiz);
-        novaRaiz->tipoNo      = 0; // raiz interna
-        novaRaiz->chaves[0]   = chavePromovida;
-        novaRaiz->ponteiros[0] = ptrPromovido;
-        novaRaiz->filhos[0]   = header->noRaiz;
-        novaRaiz->filhos[1]   = rrnDireita;
-        novaRaiz->nroChaves   = 1;
+        novaRaiz.tipoNo      = 0; // raiz interna
+        novaRaiz.chaves[0]   = chavePromovida;
+        novaRaiz.ponteiros[0] = ptrPromovido;
+        novaRaiz.filhos[0]   = header->noRaiz;
+        novaRaiz.filhos[1]   = rrnDireita;
+        novaRaiz.nroChaves   = 1;
 
         int rrnNovaRaiz = alocarRRN(file, header);
         header->noRaiz  = rrnNovaRaiz;
 
         // o nó que era raiz vira intermediário
         binaryNode noAntigo;
-        readBinaryNode(&noAntigo, file, novaRaiz->filhos[0]);
+        readBinaryNode(&noAntigo, file, novaRaiz.filhos[0]);
         if (noAntigo.tipoNo == -1)
             noAntigo.tipoNo = 1; // era folha+raiz, agora só folha (intermediário)
-        writeBinaryNode(&noAntigo, file, novaRaiz->filhos[0]);
-
-        writeBinaryNode(novaRaiz, file, rrnNovaRaiz);
-        free(novaRaiz);
+        writeBinaryNode(&noAntigo, file, novaRaiz.filhos[0]);
+        writeBinaryNode(&novaRaiz, file, rrnNovaRaiz);
     }
 }
 
@@ -230,7 +225,7 @@ int searchKey(FILE *file, int chave, binaryHeader *header) {
     return -1; // não encontrou
 }
 
-static void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
+void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
     binaryNode no;
     readBinaryNode(&no, file, rrn);
     no.removido = '1';
@@ -240,7 +235,7 @@ static void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
     writeBinaryNode(&no, file, rrn);
 }
 
-static int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, int *ptrSucc) {
+int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, int *ptrSucc) {
     int rrnAtual = rrnFilhoDireita;
     binaryNode no;
 
@@ -256,7 +251,7 @@ static int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, in
     return rrnAtual;
 }
 
-static void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
+void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
 
@@ -335,7 +330,7 @@ static void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     writeBinaryNode(&noDir, file, rrnDir);
 }
 
-static int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
+int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
 
@@ -382,7 +377,7 @@ static int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *hea
     return (pai.nroChaves < (ORDEM / 2) - 1);
 }
 
-static int removerRecursivo(FILE *file, int rrnAtual, int rrnPai, int indiceNoPai, int chave, binaryHeader *header) {
+int removerRecursivo(FILE *file, int rrnAtual, int rrnPai, int indiceNoPai, int chave, binaryHeader *header) {
     if (rrnAtual == -1)
         return 0; // chave não encontrada
 

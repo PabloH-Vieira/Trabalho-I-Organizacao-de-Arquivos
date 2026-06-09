@@ -1,11 +1,10 @@
 #include "binaryTree.h"
 #define HEADER_SIZE sizeof(binaryHeader)
 #define NODE_SIZE sizeof(binaryNode)
-
 #define TAMANHO_CABECALHO 17
 #define TAMANHO_NO 53
 
-void readBinaryHeader(binaryHeader *header, FILE *file, int rrn) {
+void readBinaryHeader(binaryHeader *header, FILE *file) {
     fseek(file, 0, SEEK_SET);
     fread(&header->status, sizeof(char), 1, file);
     fread(&header->noRaiz, sizeof(int), 1, file);
@@ -45,7 +44,8 @@ int readBinaryNode(binaryNode *node, FILE *file, int rrn){
 }
 
 // função para escrever um nó da árvore binária
-void writeBinaryNode(binaryNode *node, FILE *file){
+void writeBinaryNode(binaryNode *node, FILE *file, int rrn){
+    fseek(file, HEADER_SIZE + NODE_SIZE*(rrn), SEEK_SET);
     fwrite(&node->removido, sizeof(char), 1, file);
     fwrite(&node->proximo, sizeof(int), 1, file);
     fwrite(&node->tipoNo, sizeof(int), 1, file);
@@ -53,4 +53,8 @@ void writeBinaryNode(binaryNode *node, FILE *file){
     fwrite(node->chaves, sizeof(int), 3, file);
     fwrite(node->ponteiros, sizeof(int), 3, file);
     fwrite(node->filhos, sizeof(int), 4, file);
+}
+
+void createEmptyBinaryNode(binaryNode* node){
+
 }
