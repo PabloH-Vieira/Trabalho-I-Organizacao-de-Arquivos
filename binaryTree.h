@@ -14,7 +14,7 @@ typedef struct binaryHeader{
 typedef struct binaryNode{
     char removido; // '0' para nó removido, '1' para nó válido
     int proximo; // RRN do próximo nó na pilha de nós removidos (apenas para nós removidos)
-    int tipoNo;
+    int tipoNo; // '-1' para nó folha, '0' para nó raiz, '1' para nó intermediário
     int nroChaves; // Número de chaves atualmente no nó
     int chaves[3]; // Vetor de chaves (RRNs dos registros correspond
     int ponteiros[3]; // Vetor de ponteiros para os registros correspondentes às chaves
@@ -23,21 +23,26 @@ typedef struct binaryNode{
 
 // Funções de manipulação da árvore binária
 // função para ler o cabeçalho do arquivo binário
-void readBinaryHeader(binaryHeader *header, FILE *file, int rrn);
+void readBinaryHeader(binaryHeader *header, FILE *file);
 
 // Função para criar um novo cabeçalho para o arquivo de índice
 void createBinaryHeader(binaryHeader *header);
 
 // função para escrever o cabeçalho no arquivo binário
-void writeBinaryHeader(binaryHeader *header, FILE *file);
+void writeBinaryHeader(binaryHeader *header, FILE *file, int rrn);
 
 // função para ler um nó da árvore binária
 int readBinaryNode(binaryNode *node, FILE *file, int rrn);
 
+// Função para criar uma árvore vazia
+int createEmptyTree();
+
 // função para escrever um nó da árvore binária
-void writeBinaryNode(binaryNode *node, FILE *file);
+void writeBinaryNode(binaryNode *node, FILE *file, int rrn);
 
 // função que cria um nó vazio
-binaryNode* createEmptyBinaryNode();
+void createEmptyBinaryNode(binaryNode *newNode);
+
+int createNode(FILE *file, binaryHeader *header);
 
 #endif
