@@ -73,7 +73,7 @@ int main(void) {
             scanf("%s", nomeArquivoBin);
             scanf("%s", nomeArquivoIndice);
             scanf("%d", &nroBuscas8);
-            //searchWithIndex(nomeArquivoBin, nomeArquivoIndice, nroBuscas8);
+            searchWithIndex(nomeArquivoBin, nomeArquivoIndice, nroBuscas8);
             break;
 
         case 9:
@@ -82,7 +82,7 @@ int main(void) {
             scanf("%s", nomeArquivoBin);
             scanf("%s", nomeArquivoIndice);
             scanf("%d", &nroRemocoes9);
-            //deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
+            deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
             break;
 
         case 10:
@@ -91,7 +91,7 @@ int main(void) {
             scanf("%s", nomeArquivoBin);
             scanf("%s", nomeArquivoIndice);
             scanf("%d", &nroInsercoes10);
-            //insertWithIndex(nomeArquivoBin, nomeArquivoIndice, nroInsercoes10);
+            insertWithIndex(nomeArquivoBin, nomeArquivoIndice, nroInsercoes10);
             break;
     }
     return 0;
