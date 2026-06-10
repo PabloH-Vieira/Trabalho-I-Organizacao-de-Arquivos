@@ -43,61 +43,60 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
                       int *chavePromovida, int *ptrPromovido, int *rrnNovoDireita, binaryHeader *header) {
 
     // vetor temporário com as 4 chaves (3 antigas + 1 nova)
-    int chaves[ORDEM],    ptrs[ORDEM],    filhos[ORDEM + 1];
+    int tempChaves[ORDEM], tempPonteiros[ORDEM], tempFilhos[ORDEM + 1];
 
     // copia o conteúdo atual do nó para os vetores temporários
-    for (int i = 0; i < MAX_CHAVES; i++) {
-        chaves[i]  = noEsq->chaves[i];
-        ptrs[i]    = noEsq->ponteiros[i];
-        filhos[i]  = noEsq->filhos[i];
+    for (int i = 0; i < 3; i++) {
+        tempChaves[i] = noEsq->chaves[i];
+        tempPonteiros[i] = noEsq->ponteiros[i];
+        tempFilhos[i] = noEsq->filhos[i];
     }
-    filhos[MAX_CHAVES] = noEsq->filhos[MAX_CHAVES];
+    tempFilhos[3] = noEsq->filhos[3];
 
     // insere a nova chave nos vetores temporários mantendo a ordem
-    int i = MAX_CHAVES - 1;
-    while (i >= 0 && chaves[i] > chaveNova) {
-        chaves[i + 1]  = chaves[i];
-        ptrs[i + 1]    = ptrs[i];
-        filhos[i + 2]  = filhos[i + 1];
+    int i = 2;
+
+    while (i >= 0 && tempChaves[i] > chaveNova) {
+        tempChaves[i + 1]  = tempChaves[i];
+        tempPonteiros[i + 1] = tempPonteiros[i];
+        tempFilhos[i + 2] = tempFilhos[i + 1];
         i--;
     }
-    chaves[i + 1]  = chaveNova;
-    ptrs[i + 1]    = ptrNova;
-    filhos[i + 2]  = filhoNovoDireita;
+    // Insere a nova chave na posição correta
+    tempChaves[i + 1] = chaveNova;
+    tempPonteiros[i + 1] = ptrNova;
+    tempFilhos[i + 2] = filhoNovoDireita;
 
     // com m=4: esquerdo fica com 2 chaves, promove índice 2, direito fica com 1
-    int meio = 2; // índice da chave promovida (primeira do nó direito)
-
-    *chavePromovida = chaves[meio];
-    *ptrPromovido   = ptrs[meio];
+    *chavePromovida = tempChaves[2];
+    *ptrPromovido   = tempPonteiros[2];
 
     // reconstrói o nó esquerdo com as chaves antes do meio
-    noEsq->nroChaves = meio; // 2 chaves
-    for (int j = 0; j < meio; j++) {
-        noEsq->chaves[j]    = chaves[j];
-        noEsq->ponteiros[j] = ptrs[j];
-        noEsq->filhos[j]    = filhos[j];
+    noEsq->nroChaves = 2;
+    for (int j = 0; j < 2; j++) {
+        noEsq->chaves[j]    = tempChaves[j];
+        noEsq->ponteiros[j] = tempPonteiros[j];
+        noEsq->filhos[j]    = tempFilhos[j];
     }
-    noEsq->filhos[meio] = filhos[meio];
-    // limpa as posições que sobraram
-    for (int j = meio; j < MAX_CHAVES; j++) {
-        noEsq->chaves[j]    = -1;
-        noEsq->ponteiros[j] = -1;
-    }
-    noEsq->filhos[MAX_CHAVES] = -1;
+    noEsq->filhos[2] = tempFilhos[2];
+
+    // Inserindo valores padrões para a chave removida do nó esquerdo
+    noEsq->chaves[2] = -1;
+    noEsq->ponteiros[2] = -1;
+    noEsq->filhos[3] = -1; 
+
 
     // cria o nó direito com as chaves depois do meio
     binaryNode noDir;
     createEmptyBinaryNode(&noDir);
-    noDir.tipoNo    = noEsq->tipoNo; // mesmo tipo (folha ou interno)
-    noDir.nroChaves = MAX_CHAVES - meio; // 1 chave
-
-    for (int j = 0; j < noDir.nroChaves; j++) {
-        noDir.chaves[j]    = chaves[meio + 1 + j];
-        noDir.ponteiros[j] = ptrs[meio + 1 + j];
-        noDir.filhos[j]    = filhos[meio + 1 + j];
-    }
-    noDir.filhos[noDir.nroChaves] = filhos[ORDEM];
+    noDir.tipoNo = noEsq->tipoNo; // mesmo tipo (folha ou interno)
+    if (noDir.tipoNo == 0)
+        noDir.tipoNo = 1;
+    noDir.nroChaves = 1;
+    noDir.chaves[0] = tempChaves[3];
+    noDir.ponteiros[0] = tempPonteiros[3];
+    noDir.filhos[0] = tempFilhos[3];
+    noDir.filhos[1] = tempFilhos[4];
 
     // aloca RRN para o nó direito e escreve no arquivo
     *rrnNovoDireita = alocarRRN(file, header);
@@ -161,7 +160,7 @@ int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePro
 void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
     int chavePromovida, ptrPromovido, rrnDireita;
 
-    // árvore vazia — cria a primeira folha que também é a raiz
+    // Caso de árvore vazia: cria a primeira folha que também é a raiz
     if (header->noRaiz == -1) {
         binaryNode raiz;
         createEmptyBinaryNode(&raiz);
@@ -176,13 +175,14 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
         return;
     }
 
+    // Caso que a árvore já existe: insere recursivamente
     int houveSplit = inserirRecursivo(file, header->noRaiz, chave, rrnRegistro,
                                       &chavePromovida, &ptrPromovido, &rrnDireita,
                                       header);
 
     if (houveSplit) {
-        // split chegou até a raiz — cria uma nova raiz
-        binaryNode novaRaiz;
+        // split chegou até a raiz: cria uma nova raiz
+        binaryNode novaRaiz;    
         createEmptyBinaryNode(&novaRaiz);
         novaRaiz.tipoNo      = 0; // raiz interna
         novaRaiz.chaves[0]   = chavePromovida;
@@ -192,15 +192,16 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
         novaRaiz.nroChaves   = 1;
 
         int rrnNovaRaiz = alocarRRN(file, header);
-        header->noRaiz  = rrnNovaRaiz;
 
         // o nó que era raiz vira intermediário
         binaryNode noAntigo;
-        readBinaryNode(&noAntigo, file, novaRaiz.filhos[0]);
-        if (noAntigo.tipoNo == -1)
-            noAntigo.tipoNo = 1; // era folha+raiz, agora só folha (intermediário)
-        writeBinaryNode(&noAntigo, file, novaRaiz.filhos[0]);
+        readBinaryNode(&noAntigo, file, header -> noRaiz);
+        if (noAntigo.tipoNo == 0)
+            noAntigo.tipoNo = 1; // Era raiz com filhos, agora é intermediário
+
+        writeBinaryNode(&noAntigo, file, header -> noRaiz);
         writeBinaryNode(&novaRaiz, file, rrnNovaRaiz);
+        header -> noRaiz = rrnNovaRaiz;
     }
 }
 

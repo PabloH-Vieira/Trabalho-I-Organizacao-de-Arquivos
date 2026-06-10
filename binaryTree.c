@@ -1,8 +1,6 @@
 #include "binaryTree.h"
-#define HEADER_SIZE sizeof(binaryHeader)
-#define NODE_SIZE sizeof(binaryNode)
-#define TAMANHO_CABECALHO 17
-#define TAMANHO_NO 53
+#define HEADER_SIZE 17
+#define NODE_SIZE 53
 
 void readBinaryHeader(binaryHeader *header, FILE *file) {
     fseek(file, 0, SEEK_SET);
@@ -32,13 +30,15 @@ void writeBinaryHeader(binaryHeader *header, FILE *file){
 }
 
 int readBinaryNode(binaryNode *node, FILE *file, int rrn){
-    fseek(file, rrn * sizeof(binaryNode), SEEK_SET);
+    fseek(file, HEADER_SIZE + (rrn * NODE_SIZE), SEEK_SET);
     fread(&node->removido, sizeof(char), 1, file);
     fread(&node->proximo, sizeof(int), 1, file);
     fread(&node->tipoNo, sizeof(int), 1, file);
     fread(&node->nroChaves, sizeof(int), 1, file);
-    fread(node->chaves, sizeof(int), 3, file);
-    fread(node->ponteiros, sizeof(int), 3, file);
+    for (int i = 0; i < 3; i++) {
+        fread(&node->chaves[i], sizeof(int), 1, file);
+        fread(&node->ponteiros[i], sizeof(int), 1, file);
+    }
     fread(node->filhos, sizeof(int), 4, file);
     return 1;
 }
@@ -50,11 +50,23 @@ void writeBinaryNode(binaryNode *node, FILE *file, int rrn){
     fwrite(&node->proximo, sizeof(int), 1, file);
     fwrite(&node->tipoNo, sizeof(int), 1, file);
     fwrite(&node->nroChaves, sizeof(int), 1, file);
-    fwrite(node->chaves, sizeof(int), 3, file);
-    fwrite(node->ponteiros, sizeof(int), 3, file);
+    for (int i = 0; i < 3; i++) {
+        fwrite(&node->chaves[i], sizeof(int), 1, file);
+        fwrite(&node->ponteiros[i], sizeof(int), 1, file);
+    }
     fwrite(node->filhos, sizeof(int), 4, file);
 }
 
-void createEmptyBinaryNode(binaryNode* node){
-
+void createEmptyBinaryNode(binaryNode* newNode){
+    newNode->removido = '0'; // Nó válido
+    newNode->proximo = -1; // Não utilizado para nós válidos
+    newNode->tipoNo = -1; // Nó folha
+    newNode->nroChaves = 0; // Inicialmente, não há chaves no nó
+    for (int i = 0; i < 3; i++){
+        newNode->chaves[i] = -1; // Inicializa as chaves como -1 para indicar que estão vazias
+        newNode->ponteiros[i] = -1; // Inicializa os ponteiros como -1 para indicar que estão vazios
+    }
+    for (int i = 0; i < 4; i++){
+        newNode->filhos[i] = -1; // Inicializa os filhos como -1 para indicar que estão vazios
+    }
 }

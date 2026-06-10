@@ -20,8 +20,8 @@ void createIndex(char *binFileName, char *indexFileName){
         return;
     }
     writeBinaryHeader(&header, arquivoIndice);
+    
     // Loop para ler os registros do arquivo binário e escrever as chaves e RRNs correspondentes no arquivo de índice
-
     Registro regAtual;
     int rrn = 0;
     fseek(arquivoBinario, 17, SEEK_SET); // Pula o cabeçalho
@@ -30,7 +30,7 @@ void createIndex(char *binFileName, char *indexFileName){
         if (statusLeitura == 0)
             break; // Fim do arquivo
         // Se o registro não estiver removido, insere o nó correspondente na árvore de índice
-        if (statusLeitura == 1)
+        if (statusLeitura == 1 && regAtual.removido == '0')
             insertKey(arquivoIndice, rrn, regAtual.codEstacao, &header);
         // Escreve a chave (codEstacao) e o RRN correspondente no arquivo de índice
         rrn++;
