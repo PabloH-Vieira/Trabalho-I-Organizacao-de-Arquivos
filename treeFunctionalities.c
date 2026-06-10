@@ -29,8 +29,8 @@ void createIndex(char *binFileName, char *indexFileName){
         int statusLeitura = readRegistros(&regAtual, arquivoBinario);
         if (statusLeitura == 0)
             break; // Fim do arquivo
-        // Se o registro foi lido com sucesso e o código de estação é válido, insere na árvore de índice
-        if (statusLeitura == 1 && regAtual.codEstacao != -1)
+        // Se o registro foi lido com sucesso, insere na árvore de índice
+        if (statusLeitura == 1)
             insertKey(arquivoIndice, rrn, regAtual.codEstacao, &header);
         // Incrementa o RRN para sincronizar com os registros no arquivo binário
         rrn++;
