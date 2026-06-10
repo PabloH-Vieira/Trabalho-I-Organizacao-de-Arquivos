@@ -4,6 +4,9 @@
 #define TAMANHO_NO 53
 #define ORDEM 4        // m = 4, máximo de 4 filhos por nó
 #define MAX_CHAVES 3   // máximo de 3 chaves por nó
+#define PROMOTION 1
+#define NO_PROMOTION 0
+#define ERROR -1
 
 int alocarRRN(FILE *file, binaryHeader *header) {
     int rrn;
@@ -25,16 +28,16 @@ void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
     int i = node->nroChaves - 1;
 
     // desloca as chaves maiores para abrir espaço
-    while (i >= 0 && node->chaves[i] > chave) {
+    while (i >= 0 && chave < node->chaves[i]) {
         node->chaves[i + 1]   = node->chaves[i];
         node->ponteiros[i + 1] = node->ponteiros[i];
         node->filhos[i + 2]   = node->filhos[i + 1];
         i--;
     }
 
-    node->chaves[i + 1]    = chave;
+    node->chaves[i + 1] = chave;
     node->ponteiros[i + 1] = ptr;
-    node->filhos[i + 2]    = filhoDireita;
+    node->filhos[i + 2] = filhoDireita;
     node->nroChaves++;
 }
 
@@ -57,11 +60,12 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
     int i = 2;
 
     while (i >= 0 && tempChaves[i] > chaveNova) {
-        tempChaves[i + 1]  = tempChaves[i];
+        tempChaves[i + 1] = tempChaves[i];
         tempPonteiros[i + 1] = tempPonteiros[i];
         tempFilhos[i + 2] = tempFilhos[i + 1];
         i--;
     }
+
     // Insere a nova chave na posição correta
     tempChaves[i + 1] = chaveNova;
     tempPonteiros[i + 1] = ptrNova;
@@ -90,8 +94,8 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
     binaryNode noDir;
     createEmptyBinaryNode(&noDir);
     noDir.tipoNo = noEsq->tipoNo; // mesmo tipo (folha ou interno)
-    if (noDir.tipoNo == 0)
-        noDir.tipoNo = 1;
+    //if (noDir.tipoNo == 0)
+        //noDir.tipoNo = 1;
     noDir.nroChaves = 1;
     noDir.chaves[0] = tempChaves[3];
     noDir.ponteiros[0] = tempPonteiros[3];
@@ -104,57 +108,124 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
     writeBinaryNode(noEsq, file, rrnEsq);
 }
 
-int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido,
-                            int *rrnDireita, binaryHeader *header) {
-    // chegou numa subárvore vazia — promove a chave diretamente
+
+
+/*
+int insertRecursive(FILE *file, binaryHeader *header, int rrnAtual, int chave, int posKey, int* promotionKey,
+                     int* posPromotion, int *promotionRightChild){
+    // Caso Base: nó folha
     if (rrnAtual == -1) {
-        *chavePromovida = chave;
-        *ptrPromovido   = ptr;
-        *rrnDireita     = -1;
-        return 1;
+        *promotionKey = chave;
+        *posPromotion = posKey;
+        *promotionRightChild = -1; // Nó folha não tem filho direito
+        return PROMOTION; // Indica que houve promoção
+    }
+    
+    // Carregar a página do nó atual
+    binaryNode node;
+    readBinaryNode(&node, file, rrnAtual);
+
+    // Buscar a posição correta para inserção
+    int i = 0;
+    while (i < node.nroChaves && chave > node.chaves[i]) {
+        // Verificar se a chave já existe
+        if (chave == node.chaves[i])
+            return ERROR; // Chave já existe, não inserir
+        // Continuar buscando até encontrar uma chave maior ou chegar ao final das chaves
+        if (chave < node.chaves[i])
+            break; // Encontrou a posição correta para inserção
+        i++;
     }
 
-    binaryNode no;
-    readBinaryNode(&no, file, rrnAtual);
+    // Variáveis para armazenar os resultados da recursão
+    int promotionKeyBelow, posPromotionBelow, promotionKeyBelowRRN;
+    int result = insertRecursive(file, header, node.filhos[i], chave, i, &promotionKeyBelow, &posPromotionBelow, &promotionKeyBelowRRN);
 
-    int chaveSubindo, ptrSubindo, rrnSubindo;
-    int houveSplit = 0;
+    if (result == NO_PROMOTION || result == ERROR)
+        return result; // Propagar o resultado da recursão
+    
+    // Se houve promoção, precisamos inserir a chave promovida no nó atual
+    if (node.nroChaves < 3) {
+        // Inserir a chave promovida no nó atual fazendo a movimentação das chaves e ponteiros
+        inserirKey(file, rrnAtual, promotionKeyBelow, posPromotionBelow, promotionKeyBelowRRN, header);
+        return NO_PROMOTION; // Não houve promoção adicional
+    } 
+    // Se o nó atual está cheio, é necessário fazer um split
+    else {
+        binaryNode newNode;
+        createEmptyBinaryNode(&newNode);
+        int promoted = splitNode(file, &node, rrnAtual, promotionKeyBelow, posPromotionBelow, promotionKeyBelowRRN, header);
 
-    if (no.filhos[0] == -1) {
-        // nó folha — insere direto aqui se couber, ou promove
-        chaveSubindo = chave;
-        ptrSubindo   = ptr;
-        rrnSubindo   = -1;
-        houveSplit   = 1; // vai tentar inserir abaixo (caso base)
-    } else {
-        // nó interno — encontra o filho certo para descer
-        int i = no.nroChaves - 1;
-        while (i >= 0 && chave < no.chaves[i])
-            i--;
-        i++; // filho à direita da última chave menor
+        // Guarda o RRN de onde o novo nó será guardado
+        int newPageRRN = createNode(file, header);
+        // Escreve os dois nós da lógica de split
+        writeBinaryNode(&node, file, header);
+        writeBinaryNode(&newNode, file, header);
+        *promotionKey = promotionKeyBelow; // Guarda a chave a ser promovida
+        *posPromotion = posPromotionBelow; // Guarda a posição da chave a ser promovida
+        *promotionRightChild = newPageRRN; // Guarda a posição do nó criado na lógica de split
+        return PROMOTION; // Indica que houve promoção
+    }
+}
+*/
+int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, 
+                    int *promotionKey, int *promotionPtr, int *promotionRightChild, binaryHeader *header) {
+    
+    // Caso Base: ultrapassou um nó folha, promove para o nó folha da recursão anterior
+    if (rrnAtual == -1) {
+        *promotionKey = chave;
+        *promotionPtr = ptr;
+        *promotionRightChild = -1;
+        return PROMOTION; 
+    }
+    
+    // Carrega a página do nó atual
+    binaryNode node;
+    readBinaryNode(&node, file, rrnAtual);
 
-        houveSplit = inserirRecursivo(file, no.filhos[i], chave, ptr,
-                                      &chaveSubindo, &ptrSubindo, &rrnSubindo,
-                                      header);
+    // Busca linear simples para encontrar o ponteiro de descida correto
+    int i = 0;
+    while (i < node.nroChaves && chave > node.chaves[i]) {
+        i++;
     }
 
-    if (!houveSplit)
-        return 0;
-
-    // tem chave para inserir neste nó
-    if (no.nroChaves < MAX_CHAVES) {
-        // cabe sem split
-        inserirNoNo(&no, chaveSubindo, ptrSubindo, rrnSubindo);
-        writeBinaryNode(&no, file, rrnAtual);
-        return 0;
+    // Verificação para evitar chave duplicada
+    if (i < node.nroChaves && chave == node.chaves[i]) {
+        return ERROR; 
     }
 
-    // nó cheio — faz split e promove
-    splitNode(file, &no, rrnAtual,
-              chaveSubindo, ptrSubindo, rrnSubindo,
-              chavePromovida, ptrPromovido, rrnDireita,
-              header);
-    return 1;
+    // Variáveis locais para capturar o que sobe do andar de baixo
+    int promotionKeyBelow, promotionPtrBelow, promotionRightChildBelow;
+    
+    // Descida recursiva
+    int result = inserirRecursivo(file, node.filhos[i], chave, ptr, 
+                                 &promotionKeyBelow, &promotionPtrBelow, &promotionRightChildBelow, header);
+
+    // Se a recursão voltou dizendo que não houve quebra de nó, ou deu erro, encerra aqui.
+    if (result == NO_PROMOTION || result == ERROR) {
+        return result; 
+    }
+    
+    // --- TRATAMENTO DO RETORNO: O andar de baixo explodiu e mandou uma chave para cima ---
+
+    if (node.nroChaves < 3) {
+        // TEM ESPAÇO: Insere a chave promovida neste nó.
+        // A função inserirNoNo faz o shift (Insertion Sort disfarçado) sozinha!
+        inserirNoNo(&node, promotionKeyBelow, promotionPtrBelow, promotionRightChildBelow);
+        
+        // Grava o nó modificado de volta e avisa o andar de cima que estabilizou
+        writeBinaryNode(&node, file, rrnAtual);
+        return NO_PROMOTION; 
+    } 
+    else {
+        // OVERFLOW NESTE ANDAR TAMBÉM: Cascata de Splits!
+        // O splitNode faz a divisão, cria a nova página, salva as DUAS no disco 
+        // e já preenche as variáveis da promoção para o andar superior.
+        splitNode(file, &node, rrnAtual, promotionKeyBelow, promotionPtrBelow, promotionRightChildBelow,
+                  promotionKey, promotionPtr, promotionRightChild, header);
+                  
+        return PROMOTION; // Avisa o andar de cima que este nó também explodiu
+    }
 }
 
 void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {

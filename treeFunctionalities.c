@@ -29,10 +29,10 @@ void createIndex(char *binFileName, char *indexFileName){
         int statusLeitura = readRegistros(&regAtual, arquivoBinario);
         if (statusLeitura == 0)
             break; // Fim do arquivo
-        // Se o registro não estiver removido, insere o nó correspondente na árvore de índice
-        if (statusLeitura == 1 && regAtual.removido == '0')
+        // Se o registro foi lido com sucesso e o código de estação é válido, insere na árvore de índice
+        if (statusLeitura == 1 && regAtual.codEstacao != -1)
             insertKey(arquivoIndice, rrn, regAtual.codEstacao, &header);
-        // Escreve a chave (codEstacao) e o RRN correspondente no arquivo de índice
+        // Incrementa o RRN para sincronizar com os registros no arquivo binário
         rrn++;
     }
     // Atualiza o cabeçalho do arquivo de índice com o número de nós inseridos e marca como consistente
