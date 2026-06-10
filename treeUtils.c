@@ -94,8 +94,8 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
     binaryNode noDir;
     createEmptyBinaryNode(&noDir);
     noDir.tipoNo = noEsq->tipoNo; // mesmo tipo (folha ou interno)
-    //if (noDir.tipoNo == 0)
-        //noDir.tipoNo = 1;
+    if (noDir.tipoNo == 0)
+        noDir.tipoNo = 1;
     noDir.nroChaves = 1;
     noDir.chaves[0] = tempChaves[3];
     noDir.ponteiros[0] = tempPonteiros[3];
@@ -235,10 +235,10 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
     if (header->noRaiz == -1) {
         binaryNode raiz;
         createEmptyBinaryNode(&raiz);
-        raiz.tipoNo      = -1; // folha e raiz ao mesmo tempo
-        raiz.chaves[0]   = chave;
+        raiz.tipoNo = -1; // folha e raiz ao mesmo tempo
+        raiz.chaves[0] = chave;
         raiz.ponteiros[0] = rrnRegistro;
-        raiz.nroChaves   = 1;
+        raiz.nroChaves = 1;
 
         int rrn = alocarRRN(file, header);
         header->noRaiz = rrn;
@@ -251,7 +251,7 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
                                       &chavePromovida, &ptrPromovido, &rrnDireita,
                                       header);
 
-    if (houveSplit) {
+    if (houveSplit == PROMOTION) {
         // split chegou até a raiz: cria uma nova raiz
         binaryNode novaRaiz;    
         createEmptyBinaryNode(&novaRaiz);

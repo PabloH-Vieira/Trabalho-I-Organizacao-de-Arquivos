@@ -30,8 +30,9 @@ void createIndex(char *binFileName, char *indexFileName){
         if (statusLeitura == 0)
             break; // Fim do arquivo
         // Se o registro foi lido com sucesso, insere na árvore de índice
-        if (statusLeitura == 1)
+        if (statusLeitura == 1){
             insertKey(arquivoIndice, rrn, regAtual.codEstacao, &header);
+        }
         // Incrementa o RRN para sincronizar com os registros no arquivo binário
         rrn++;
     }
