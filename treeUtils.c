@@ -41,7 +41,7 @@ void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
     node->nroChaves++;
 }
 
-
+/*
 void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
                       int *chavePromovida, int *ptrPromovido, int *rrnNovoDireita, binaryHeader *header) {
 
@@ -58,7 +58,7 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
 
     // insere a nova chave nos vetores temporários mantendo a ordem
     int i = 2;
-
+    
     while (i >= 0 && tempChaves[i] > chaveNova) {
         tempChaves[i + 1] = tempChaves[i];
         tempPonteiros[i + 1] = tempPonteiros[i];
@@ -107,7 +107,7 @@ void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptr
     writeBinaryNode(&noDir, file, *rrnNovoDireita);
     writeBinaryNode(noEsq, file, rrnEsq);
 }
-
+*/
 
 
 /*
@@ -168,6 +168,7 @@ int insertRecursive(FILE *file, binaryHeader *header, int rrnAtual, int chave, i
     }
 }
 */
+
 int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, 
                     int *promotionKey, int *promotionPtr, int *promotionRightChild, binaryHeader *header) {
     
@@ -553,4 +554,71 @@ void removeKey(FILE *file, int chave, binaryHeader *header) {
         novaRaiz.tipoNo = (novaRaiz.filhos[0] == -1) ? -1 : 0;
         writeBinaryNode(&novaRaiz, file, header->noRaiz);
     }
+}
+
+
+void splitBinaryNode(int key, int ponteiro, int r_child, binaryNode *p_oldpage, int *promo_key, int *promo_ponteiro, int *promo_r_child, binaryNode *p_newpage, binaryHeader *header) {
+    // 1. Criação dos Arrays de Trabalho (Work Arrays) com tamanho MAXKEYS + 1
+    int workchaves[4];       
+    int workponteiros[4];    // Acompanha a chave de dados de forma paralela
+    int workfilhos[5];       // Tamanho MAXKEYS + 2 para os RRNs dos filhos
+
+    // Copia todos os dados do nó cheio para os arrays de trabalho
+    int i;
+    for (i = 0; i < 3; i++) {
+        workchaves[i] = p_oldpage->chaves[i];
+        workponteiros[i] = p_oldpage->ponteiros[i];
+        workfilhos[i] = p_oldpage->filhos[i];
+    }
+    workfilhos[i] = p_oldpage->filhos[i]; // Copia o último filho (índice 3)
+
+    // 2. Inserção Ordenada da nova chave transbordada (Algoritmo do slide)
+    // Varre de trás para frente empurrando os elementos maiores para abrir espaço
+    for (i = 3; (key < workchaves[i - 1]) && (i > 0); i--) {
+        workchaves[i] = workchaves[i - 1];
+        workponteiros[i] = workponteiros[i - 1];
+        workfilhos[i + 1] = workfilhos[i];
+    }
+    // Insere a chave e seus respectivos ponteiros na posição correta 'i'
+    workchaves[i] = key;
+    workponteiros[i] = ponteiro;
+    workfilhos[i + 1] = r_child;
+
+    // 3. Inicialização da nova página (Equivalente ao getpage() e pageinit())
+    *promo_r_child = header->proxRRN; // O RRN promovido para o pai será o deste novo nó
+    header->proxRRN++;                // Aloca o próximo RRN no arquivo
+    header->nroNos++;                 // Atualiza a contagem global de nós para o cabeçalho
+
+    createEmptyBinaryNode(p_newpage);
+    p_newpage->tipoNo = p_oldpage->tipoNo; // Herda o tipo (se era folha -1 ou interno 1)
+
+    // 4. Distribuição das Chaves (Regra: Esquerdo com 2, Promove 1, Direito com 1)
+    
+    // --- Configuração do Nó Esquerdo (p_oldpage) ---
+    p_oldpage->chaves[0] = workchaves[0];
+    p_oldpage->ponteiros[0] = workponteiros[0];
+    p_oldpage->filhos[0] = workfilhos[0];
+
+    p_oldpage->chaves[1] = workchaves[1];
+    p_oldpage->ponteiros[1] = workponteiros[1];
+    p_oldpage->filhos[1] = workfilhos[1];
+    
+    p_oldpage->filhos[2] = workfilhos[2];
+
+    // Limpeza crucial dos resíduos antigos (fantasmas) para não quebrar o Checksum
+    p_oldpage->chaves[2] = -1;
+    p_oldpage->ponteiros[2] = -1;
+    p_oldpage->filhos[3] = -1;
+    p_oldpage->nroChaves = 2;
+
+    // --- Configuração da Chave Promovida ---
+    *promo_key = workchaves[2];
+    *promo_ponteiro = workponteiros[2];
+
+    // --- Configuração do Nó Direito (p_newpage) ---
+    p_newpage->chaves[0] = workchaves[3];
+    p_newpage->ponteiros[0] = workponteiros[3];
+    p_newpage->filhos[0] = workfilhos[3];
+    p_newpage->filhos[1] = workfilhos[4];
+    p_newpage->nroChaves = 1;
 }

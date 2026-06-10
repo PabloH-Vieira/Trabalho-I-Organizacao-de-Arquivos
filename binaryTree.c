@@ -58,6 +58,8 @@ void writeBinaryNode(binaryNode *node, FILE *file, int rrn) {
     fwrite(node->filhos, sizeof(int), 4, file);
 }
 
+
+
 void createEmptyBinaryNode(binaryNode* newNode){
     newNode->removido = '0'; // Nó válido
     newNode->proximo = -1; // Não utilizado para nós válidos
