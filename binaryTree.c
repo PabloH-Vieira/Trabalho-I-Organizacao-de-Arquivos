@@ -44,12 +44,13 @@ int readBinaryNode(binaryNode *node, FILE *file, int rrn){
 }
 
 // função para escrever um nó da árvore binária
-void writeBinaryNode(binaryNode *node, FILE *file, int rrn){
-    fseek(file, HEADER_SIZE + NODE_SIZE*(rrn), SEEK_SET);
+void writeBinaryNode(binaryNode *node, FILE *file, int rrn) {
+    fseek(file, HEADER_SIZE + NODE_SIZE * rrn, SEEK_SET);
     fwrite(&node->removido, sizeof(char), 1, file);
     fwrite(&node->proximo, sizeof(int), 1, file);
     fwrite(&node->tipoNo, sizeof(int), 1, file);
     fwrite(&node->nroChaves, sizeof(int), 1, file);
+    // intercala chave e ponteiro: C1, PR1, C2, PR2, C3, PR3
     for (int i = 0; i < 3; i++) {
         fwrite(&node->chaves[i], sizeof(int), 1, file);
         fwrite(&node->ponteiros[i], sizeof(int), 1, file);
