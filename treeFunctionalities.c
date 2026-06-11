@@ -36,7 +36,8 @@ void createIndex(char *binFileName, char *indexFileName) {
             break; // Fim do arquivo
         // Se o registro foi lido com sucesso, insere na árvore de índice
         if (statusLeitura == 1){
-            insertKey(arquivoIndice, rrn, regAtual.codEstacao, &header);
+            int byteOffset = 17 + (rrn * 80);
+            insertKey(arquivoIndice, byteOffset, regAtual.codEstacao, &header);
         }
         // Incrementa o RRN para sincronizar com os registros no arquivo binário
         rrn++;
@@ -100,10 +101,10 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
 
         if (criterios.flag_codEstacao == 1) {
             // busca pelo índice: vai direto ao RRN do registro
-            int rrnRegistro = searchKey(arquivoIndice, criterios.regBusca.codEstacao, &headerIndice);
+            int byteOffset = searchKey(arquivoIndice, criterios.regBusca.codEstacao, &headerIndice);
 
-            if (rrnRegistro != -1) {
-                fseek(arquivoBinario, 17 + rrnRegistro * 80, SEEK_SET);
+            if (byteOffset != -1) {
+                fseek(arquivoBinario, byteOffset, SEEK_SET);
                 readRegistros(&regAtual, arquivoBinario);
 
                 if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
@@ -288,7 +289,7 @@ void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
 
         // insere a chave do novo registro no índice
-        insertKey(arquivoIndice, rrnNovoRegistro, novoReg.codEstacao, &headerIndice);
+        insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
     }
 
     cabecalho.status = '1';

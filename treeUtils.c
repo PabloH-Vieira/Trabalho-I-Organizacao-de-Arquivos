@@ -229,16 +229,17 @@ int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr,
     }
 }
 
-void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
+void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *header) {
     int chavePromovida, ptrPromovido, rrnDireita;
 
     // Caso de árvore vazia: cria a primeira folha que também é a raiz
-    if (header->noRaiz == -1) {
+    if (header->noRaiz == -1) { 
         binaryNode raiz;
         createEmptyBinaryNode(&raiz);
-        raiz.tipoNo = -1; // folha e raiz ao mesmo tempo
+        //raiz.tipoNo = -1; // folha e raiz ao mesmo tempo
+        raiz.tipoNo = 0;
         raiz.chaves[0] = chave;
-        raiz.ponteiros[0] = rrnRegistro;
+        raiz.ponteiros[0] = byteOffsetRegistro;
         raiz.nroChaves = 1;
 
         int rrn = alocarRRN(file, header);
@@ -248,7 +249,7 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
     }
 
     // Caso que a árvore já existe: insere recursivamente
-    int houveSplit = inserirRecursivo(file, header->noRaiz, chave, rrnRegistro,
+    int houveSplit = inserirRecursivo(file, header->noRaiz, chave, byteOffsetRegistro,
                                       &chavePromovida, &ptrPromovido, &rrnDireita,
                                       header);
 
@@ -266,14 +267,15 @@ void insertKey(FILE *file, int rrnRegistro, int chave, binaryHeader *header) {
         int rrnNovaRaiz = alocarRRN(file, header);
 
         // o nó que era raiz vira intermediário
-        binaryNode noAntigo;
-        readBinaryNode(&noAntigo, file, header -> noRaiz);
-        if (noAntigo.tipoNo == 0)
-            noAntigo.tipoNo = 1; // Era raiz com filhos, agora é intermediário
+        //binaryNode noAntigo;
+        //readBinaryNode(&noAntigo, file, header -> noRaiz);
+        //if (noAntigo.tipoNo == 0)
+            //noAntigo.tipoNo = 1; // Era raiz com filhos, agora é intermediário
 
-        writeBinaryNode(&noAntigo, file, header -> noRaiz);
+        //writeBinaryNode(&noAntigo, file, header -> noRaiz);
         writeBinaryNode(&novaRaiz, file, rrnNovaRaiz);
         header -> noRaiz = rrnNovaRaiz;
+        writeBinaryHeader(header, file);
     }
 }
 
@@ -556,8 +558,8 @@ void removeKey(FILE *file, int chave, binaryHeader *header) {
     }
 }
 
-
-void splitBinaryNode(int key, int ponteiro, int r_child, binaryNode *p_oldpage, int *promo_key, int *promo_ponteiro, int *promo_r_child, binaryNode *p_newpage, binaryHeader *header) {
+/*
+void splitNode(FILE *file, binaryNode *p_oldpage, int rrn_oldpage, int key, int ponteiro, int r_child, int *promo_key, int *promo_ponteiro, int *promo_r_child, binaryHeader *header) {
     // 1. Criação dos Arrays de Trabalho (Work Arrays) com tamanho MAXKEYS + 1
     int workchaves[4];       
     int workponteiros[4];    // Acompanha a chave de dados de forma paralela
@@ -585,12 +587,23 @@ void splitBinaryNode(int key, int ponteiro, int r_child, binaryNode *p_oldpage, 
     workfilhos[i + 1] = r_child;
 
     // 3. Inicialização da nova página (Equivalente ao getpage() e pageinit())
-    *promo_r_child = header->proxRRN; // O RRN promovido para o pai será o deste novo nó
-    header->proxRRN++;                // Aloca o próximo RRN no arquivo
-    header->nroNos++;                 // Atualiza a contagem global de nós para o cabeçalho
-
-    createEmptyBinaryNode(p_newpage);
-    p_newpage->tipoNo = p_oldpage->tipoNo; // Herda o tipo (se era folha -1 ou interno 1)
+    *promo_r_child = alocarRRN(file, header);
+    binaryNode p_newpage;
+    createEmptyBinaryNode(&p_newpage);
+        if (p_oldpage->tipoNo == 0) {
+        // Se era a raiz, os dois nós resultantes deixam de ser raiz
+        if (p_oldpage->filhos[0] == -1) {
+            p_oldpage->tipoNo = -1; // Viram folhas comuns
+            p_newpage.tipoNo = -1;
+        } else {
+            p_oldpage->tipoNo = 1;  // Viram nós internos comuns
+            p_newpage.tipoNo = 1;
+        }
+    } else {
+        // Se não era raiz, o da direita apenas herda o tipo do esquerdo
+        p_newpage.tipoNo = p_oldpage->tipoNo;
+    }
+    //p_newpage.tipoNo = p_oldpage->tipoNo; // Herda o tipo (se era folha -1 ou interno 1)
 
     // 4. Distribuição das Chaves (Regra: Esquerdo com 2, Promove 1, Direito com 1)
     
@@ -616,9 +629,99 @@ void splitBinaryNode(int key, int ponteiro, int r_child, binaryNode *p_oldpage, 
     *promo_ponteiro = workponteiros[2];
 
     // --- Configuração do Nó Direito (p_newpage) ---
-    p_newpage->chaves[0] = workchaves[3];
-    p_newpage->ponteiros[0] = workponteiros[3];
-    p_newpage->filhos[0] = workfilhos[3];
-    p_newpage->filhos[1] = workfilhos[4];
-    p_newpage->nroChaves = 1;
+    p_newpage.chaves[0] = workchaves[3];
+    p_newpage.ponteiros[0] = workponteiros[3];
+    p_newpage.filhos[0] = workfilhos[3];
+    p_newpage.filhos[1] = workfilhos[4];
+    p_newpage.nroChaves = 1;
+    writeBinaryNode(&p_newpage, file, *promo_r_child);
+    writeBinaryNode(p_oldpage, file, rrn_oldpage);
+    writeBinaryHeader(header, file);
+}
+*/
+
+void splitNode(FILE *file, binaryNode *p_oldpage, int rrn_oldpage, 
+               int key, int ponteiro, int r_child, 
+               int *promo_key, int *promo_ponteiro, int *promo_r_child, 
+               binaryHeader *header) {
+    
+    // 1. Criação dos Arrays de Trabalho (Tamanho MAXKEYS + 1)
+    int workchaves[4];       
+    int workponteiros[4];    
+    int workfilhos[5];       // 5 filhos possíveis para 4 chaves temporárias
+
+    // Copia os dados atuais do nó cheio para os arrays de trabalho
+    int i;
+    for (i = 0; i < 3; i++) {
+        workchaves[i] = p_oldpage->chaves[i];
+        workponteiros[i] = p_oldpage->ponteiros[i];
+        workfilhos[i] = p_oldpage->filhos[i];
+    }
+    workfilhos[3] = p_oldpage->filhos[3]; // Copia o quarto e último filho original
+
+    // 2. Inserção Ordenada da nova chave transbordada (Algoritmo do material base)
+    // Varre de trás para frente arrastando elementos maiores para abrir o espaço correto
+    for (i = 3; (key < workchaves[i - 1]) && (i > 0); i--) {
+        workchaves[i] = workchaves[i - 1];
+        workponteiros[i] = workponteiros[i - 1];
+        workfilhos[i + 1] = workfilhos[i];
+    }
+    // Insere a chave promotora vinda de baixo e seu respectivo filho direito síncronos
+    workchaves[i] = key;
+    workponteiros[i] = ponteiro;
+    workfilhos[i + 1] = r_child;
+
+    // 3. Alocação de metadados para a nova página da direita
+    // Se você tiver uma função auxiliar "alocarRRN", pode usá-la aqui:
+    *promo_r_child = alocarRRN(file, header);               
+
+    binaryNode p_newpage;
+    createEmptyBinaryNode(&p_newpage);
+
+    // 4. Ajuste fino do tipoNo (Evita o bug de múltiplos nós raízes fantasmas)
+    if (p_oldpage->tipoNo == 0) {
+        if (p_oldpage->filhos[0] == -1) {
+            p_oldpage->tipoNo = -1; // Antiga raiz vira folha comum
+            p_newpage.tipoNo = -1;  // Nova página da direita vira folha comum
+        } else {
+            p_oldpage->tipoNo = 1;  // Antiga raiz vira nó interno comum
+            p_newpage.tipoNo = 1;   // Nova página da direita vira nó interno comum
+        }
+    } else {
+        p_newpage.tipoNo = p_oldpage->tipoNo; // Se não era raiz, herda o tipo normalmente
+    }
+
+    // 5. Distribuição das Chaves (Regra m=4: Esquerdo com 2, Promove a 3ª, Direito com 1)
+    
+    // --- Configuração do Nó Esquerdo (p_oldpage) ---
+    p_oldpage->chaves[0] = workchaves[0];
+    p_oldpage->ponteiros[0] = workponteiros[0];
+    p_oldpage->filhos[0] = workfilhos[0];
+
+    p_oldpage->chaves[1] = workchaves[1];
+    p_oldpage->ponteiros[1] = workponteiros[1];
+    p_oldpage->filhos[1] = workfilhos[1];
+    
+    p_oldpage->filhos[2] = workfilhos[2];
+
+    // Limpeza crucial dos resíduos físicos (fantasmas) para não corromper o Checksum
+    p_oldpage->chaves[2] = -1;
+    p_oldpage->ponteiros[2] = -1;
+    p_oldpage->filhos[3] = -1;
+    p_oldpage->nroChaves = 2;
+
+    // --- Configuração das Variáveis de Promoção para o Andar de Cima ---
+    *promo_key = workchaves[2];
+    *promo_ponteiro = workponteiros[2];
+
+    // --- Configuração do Nó Direito (p_newpage) ---
+    p_newpage.chaves[0] = workchaves[3];
+    p_newpage.ponteiros[0] = workponteiros[3];
+    p_newpage.filhos[0] = workfilhos[3];
+    p_newpage.filhos[1] = workfilhos[4];
+    p_newpage.nroChaves = 1;
+
+    // 6. Persistência Física no Arquivo de Índices
+    writeBinaryNode(p_oldpage, file, rrn_oldpage);
+    writeBinaryNode(&p_newpage, file, *promo_r_child);
 }
