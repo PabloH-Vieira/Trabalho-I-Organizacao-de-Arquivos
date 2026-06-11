@@ -556,6 +556,9 @@ void removeKey(FILE *file, int chave, binaryHeader *header) {
         novaRaiz.tipoNo = (novaRaiz.filhos[0] == -1) ? -1 : 0;
         writeBinaryNode(&novaRaiz, file, header->noRaiz);
     }
+    
+    // salva o cabeçalho atualizado no arquivo (topo, nroNos e noRaiz podem ter mudado)
+    writeBinaryHeader(header, file);
 }
 
 /*

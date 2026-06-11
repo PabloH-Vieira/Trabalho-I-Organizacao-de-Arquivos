@@ -34,8 +34,8 @@ void createIndex(char *binFileName, char *indexFileName) {
         int statusLeitura = readRegistros(&regAtual, arquivoBinario);
         if (statusLeitura == 0)
             break; // Fim do arquivo
-        // Se o registro foi lido com sucesso, insere na árvore de índice
-        if (statusLeitura == 1){
+        // Insere apenas registros válidos (não removidos) na árvore de índice
+        if (statusLeitura == 1 && regAtual.removido == '0'){
             int byteOffset = 17 + (rrn * 80);
             insertKey(arquivoIndice, byteOffset, regAtual.codEstacao, &header);
         }
