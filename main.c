@@ -77,15 +77,6 @@ int main(void) {
             break;
 
         case 9:
-            // Remove registros e atualiza o índice árvore-B
-            int nroRemocoes9;
-            scanf("%s", nomeArquivoBin);
-            scanf("%s", nomeArquivoIndice);
-            scanf("%d", &nroRemocoes9);
-            deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
-            break;
-
-        case 10:
             // Insere registros e atualiza o índice árvore-B
             int nroInsercoes10;
             scanf("%s", nomeArquivoBin);
@@ -93,6 +84,16 @@ int main(void) {
             scanf("%d", &nroInsercoes10);
             insertWithIndex(nomeArquivoBin, nomeArquivoIndice, nroInsercoes10);
             break;
+
+        case 10:
+        // Remove registros e atualiza o índice árvore-B
+            int nroRemocoes9;
+            scanf("%s", nomeArquivoBin);
+            scanf("%s", nomeArquivoIndice);
+            scanf("%d", &nroRemocoes9);
+            deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
+            break;
+
     }
     return 0;
 }

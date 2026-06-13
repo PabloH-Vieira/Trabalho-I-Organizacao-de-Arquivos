@@ -1,0 +1,13 @@
+int offsetExistente = searchKey(arquivoIndice, novoReg.codEstacao, &headerIndice);
+        
+        if (offsetExistente == -1) {
+            // A chave n�o existe no �ndice! � uma esta��o in�dita.
+            // Aqui ganhamos os exatos 13 pontos em falta:
+            cabecalho.nroEstacoes++; 
+            
+            // E s� agora inserimos na �rvore-B, pois ela n�o aceita duplicados
+            insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
+        } else {
+            // A esta��o j� existe. N�O incrementamos nroEstacoes 
+            // e N�O inserimos no ficheiro de �ndice novamente.
+        }

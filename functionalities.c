@@ -23,11 +23,6 @@ void CreateTable(char *inputFileName, char *outputFileName){
     int fieldIndex = 0; // Índice para rastrear qual campo do registro está sendo preenchido
     
     Registro regAtual;
-    //memset(&regAtual, 0, sizeof(Registro));  // Inicializa o registro atual com zeros
-    // Preenche os campos variáveis com '$'
-    //memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
-    //memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
-
     Estacoes nomesEPares = {0};    // Estrutura para armazenar as estações e os pares de estações únicas
 
     // Pula a primeira linha do arquivo de entrada (cabeçalho)
@@ -293,11 +288,6 @@ void Insert(char *FileName, int nroInsercoes){
 
     for (int i = 0; i < nroInsercoes; i++){
         Registro novoReg;
-        // Inicializar o registro com zeros para evitar lixo
-        //memset(&novoReg, 0, sizeof(Registro));
-        // Inicializar campos variáveis com '$' para evitar lixo
-        //memset(novoReg.nomeEstacao, '$', sizeof(novoReg.nomeEstacao));
-        //memset(novoReg.nomeLinha, '$', sizeof(novoReg.nomeLinha));
         preencherNovoRegistro(&novoReg);
     
         // Lógica de reaproveitamento de espaço
@@ -325,9 +315,6 @@ void Insert(char *FileName, int nroInsercoes){
         //Escrever o registro no arquivo binário
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
     }
-
-    // Recalcula estações e pares únicos baseado nos registros inclusos
-    // recalcularEstacoesPares(arquivoBinario, &cabecalho);
 
     cabecalho.status = '1';
     writeHeader(&cabecalho, arquivoBinario);

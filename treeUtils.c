@@ -236,8 +236,8 @@ void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *head
     if (header->noRaiz == -1) { 
         binaryNode raiz;
         createEmptyBinaryNode(&raiz);
-        //raiz.tipoNo = -1; // folha e raiz ao mesmo tempo
-        raiz.tipoNo = 0;
+        raiz.tipoNo = -1; // folha e raiz ao mesmo tempo
+        //raiz.tipoNo = 0;
         raiz.chaves[0] = chave;
         raiz.ponteiros[0] = byteOffsetRegistro;
         raiz.nroChaves = 1;

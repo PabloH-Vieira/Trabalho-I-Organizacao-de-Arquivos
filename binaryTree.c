@@ -68,8 +68,7 @@ void createEmptyBinaryNode(binaryNode* newNode){
     for (int i = 0; i < 3; i++){
         newNode->chaves[i] = -1; // Inicializa as chaves como -1 para indicar que estão vazias
         newNode->ponteiros[i] = -1; // Inicializa os ponteiros como -1 para indicar que estão vazios
+        newNode->filhos[i] = -1;
     }
-    for (int i = 0; i < 4; i++){
-        newNode->filhos[i] = -1; // Inicializa os filhos como -1 para indicar que estão vazios
-    }
+    newNode->filhos[3] = -1; 
 }

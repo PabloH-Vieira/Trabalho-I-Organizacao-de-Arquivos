@@ -225,6 +225,7 @@ void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes) {
  * Insere novos registros no arquivo de dados e adiciona as chaves
  * correspondentes no índice árvore-B.
  */
+/*
 void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
     FILE *arquivoBinario = fopen(binFileName, "rb+");
     if (arquivoBinario == NULL) {
@@ -290,6 +291,119 @@ void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
 
         // insere a chave do novo registro no índice
         insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
+    }
+
+    cabecalho.status = '1';
+    writeHeader(&cabecalho, arquivoBinario);
+    headerIndice.status = '1';
+    writeBinaryHeader(&headerIndice, arquivoIndice);
+
+    fclose(arquivoBinario);
+    fclose(arquivoIndice);
+
+    BinarioNaTela(binFileName);
+    BinarioNaTela(indexFileName);
+}
+    */
+void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
+    FILE *arquivoBinario = fopen(binFileName, "rb+");
+    if (arquivoBinario == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    FILE *arquivoIndice = fopen(indexFileName, "rb+");
+    if (arquivoIndice == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoBinario);
+        return;
+    }
+
+    Header cabecalho;
+    readHeader(&cabecalho, arquivoBinario);
+    if (cabecalho.status == '0') {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoBinario);
+        fclose(arquivoIndice);
+        return;
+    }
+
+    binaryHeader headerIndice;
+    readBinaryHeader(&headerIndice, arquivoIndice);
+    if (headerIndice.status == '0') {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoBinario);
+        fclose(arquivoIndice);
+        return;
+    }
+
+    cabecalho.status = '0';
+    writeHeader(&cabecalho, arquivoBinario);
+    headerIndice.status = '0';
+    writeBinaryHeader(&headerIndice, arquivoIndice);
+    for (int i = 0; i < nroInsercoes; i++) {
+        Registro novoReg;
+        preencherNovoRegistro(&novoReg);
+        
+        // 1. ÁRVORE-B: Verifica se a chave primária já existe
+        int offsetExistente = searchKey(arquivoIndice, novoReg.codEstacao, &headerIndice);
+        if (offsetExistente != -1) {
+            continue; 
+        }
+
+        int nomeInedito = 0;
+        if (novoReg.tamNomeEstacao > 0) {
+            nomeInedito = 1; // Assume que é inédito
+            long posAtual = ftell(arquivoBinario);
+            
+            fseek(arquivoBinario, 17, SEEK_SET); // Pula o cabeçalho
+            Registro regBusca;
+            int statusLeitura;
+            
+            // Varre o arquivo buscando o nome
+            while ((statusLeitura = readRegistros(&regBusca, arquivoBinario)) != 0) {
+                if (regBusca.tamNomeEstacao == novoReg.tamNomeEstacao) {
+                    if (strncmp(regBusca.nomeEstacao, novoReg.nomeEstacao, novoReg.tamNomeEstacao) == 0) {
+                        nomeInedito = 0; // O nome já existia!
+                        break;
+                    }
+                }
+            }
+            fseek(arquivoBinario, posAtual, SEEK_SET); // Restaura o ponteiro
+        }
+
+        long posicaoEscrita;
+        int rrnNovoRegistro;
+
+        if (cabecalho.topo == -1) {
+            rrnNovoRegistro = cabecalho.proxRRN;
+            posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
+            cabecalho.proxRRN++;
+        } else {
+            rrnNovoRegistro = cabecalho.topo;
+            posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
+
+            fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET);
+            int proximoDaPilha;
+            fread(&proximoDaPilha, sizeof(int), 1, arquivoBinario);
+            cabecalho.topo = proximoDaPilha;
+        }
+
+        // 4. ESCRITA FÍSICA E ÍNDICE
+        fseek(arquivoBinario, posicaoEscrita, SEEK_SET);
+        writeRegistros(&novoReg, arquivoBinario, &cabecalho);
+        
+        insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
+
+        // 5. ATUALIZAÇÃO SEGURA DO CABEÇALHO
+        if (novoReg.codProxEstacao != -1) {
+            cabecalho.nroParesEstacao++;
+        }
+        
+        // Agora sim, a variável nomeInedito traz a verdade!
+        if (nomeInedito == 1) {
+            cabecalho.nroEstacoes++;
+        }
     }
 
     cabecalho.status = '1';
