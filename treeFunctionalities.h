@@ -34,8 +34,6 @@ void createIndex(char *binFileName, char *indexFileName);
  */
 void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas);
 
-// Função que remove um registro do arquivo binário usando a árvore de índice
-void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes);
 
 /**
  * @brief Implementa a Funcionalidade [9] (INSERT INTO COM ÍNDICE): Inserção dupla em Dados e Árvore-B.
@@ -52,5 +50,23 @@ void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes);
  * @param nroInsercoes Quantidade de registros que serão lidos da entrada padrão e inseridos.
  */
 void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes);
+
+
+/**
+ * @brief Implementa a Funcionalidade [10] (DELETE COM ÍNDICE): Remoção lógica síncrona em Dados e Árvore-B.
+ *
+ * Realiza múltiplas remoções lógicas baseadas em critérios de busca (WHERE) fornecidos pelo usuário.
+ * Utiliza uma lógica de busca dupla: se a chave primária ('codEstacao') for um critério ativo, 
+ * localiza o registro via Árvore-B em tempo O(log n); caso contrário, percorre sequencialmente.
+ * Para cada registro removido, a função realiza de forma síncrona:
+ * 1. A delegação da remoção da chave primária no arquivo de índice através da função removeKey.
+ * 2. A atualização da pilha de registros removidos no arquivo de dados (reescrevendo 5 bytes).
+ * 3. O recálculo das estatísticas globais do cabeçalho de dados (número de estações e pares únicos).
+ *
+ * @param binFileName Nome ou caminho do arquivo binário de dados (.bin).
+ * @param indexFileName Nome ou caminho do arquivo binário de índice Árvore-B (.bin).
+ * @param nroRemocoes Quantidade de ciclos independentes de remoção que serão executados.
+ */
+void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes);
 
 #endif
