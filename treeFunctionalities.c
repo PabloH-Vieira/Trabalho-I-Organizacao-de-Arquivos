@@ -7,15 +7,21 @@
  * registro não removido na árvore-B, um a um.
  */
 void createIndex(char *binFileName, char *indexFileName) {
+    // ABERTURA E CONTROLE DE FLUXOS
+    // O arquivo de dados é aberto de forma não-destrutiva ("rb").
     FILE *arquivoBinario = fopen(binFileName, "rb");
     if (arquivoBinario == NULL) {
         printf("Falha no processamento do arquivo.\n");
         return;
     }
 
+    // INICIALIZAÇÃO DA ÁRVORE-B
+    // Instancia o cabeçalho do índice na RAM. A função createBinaryHeader deve garantir
+    // que status = '0' (inconsistente), noRaiz = -1 e proxRRN = 0.
     binaryHeader header;
     createBinaryHeader(&header);
 
+    // O arquivo de índice é criado em modo de escrita binária ("wb+").
     FILE *arquivoIndice = fopen(indexFileName, "wb+");
     if (arquivoIndice == NULL) {
         printf("Falha no processamento do arquivo.\n");
@@ -23,30 +29,56 @@ void createIndex(char *binFileName, char *indexFileName) {
         return;
     }
 
-    // escreve o cabeçalho inicial antes de começar a inserir
+    // Persiste o cabeçalho no estado inconsistente ocupando os primeiros 17 bytes do disco
     writeBinaryHeader(&header, arquivoIndice);
 
     Registro regAtual;
-    int rrn = 0;
+    int rrn = 0; // Rastreador lógico da posição do registro no arquivo de dados
+    
+    // PREPARAÇÃO DO CURSOR DE LEITURA
+    // Pula os 17 bytes do cabeçalho do arquivo de dados para alinhar o cursor no RRN 0
     fseek(arquivoBinario, 17, SEEK_SET);
 
+    // VARREDURA E INDEXAÇÃO
     while (1) {
+        // A função readRegistros implementa o salto de bytes e retorna códigos de estado
         int statusLeitura = readRegistros(&regAtual, arquivoBinario);
+        
         if (statusLeitura == 0)
-            break; // Fim do arquivo
-        // Insere apenas registros válidos (não removidos) na árvore de índice
+            break; // EOF (Fim de arquivo de dados)
+            
+        // FILTRO PARA IGNORAR REMOVIDOS
+        // A especificação proíbe terminantemente a inserção de chaves referentes a 
+        // registros marcados como logicamente removidos no arquivo de índice.
         if (statusLeitura == 1 && regAtual.removido == '0'){
+            
+            // CÁLCULO DO BYTE OFFSET
+            // Converte a posição lógica (RRN) para a posição física no disco.
+            // 17 bytes (cabeçalho) + (RRN * 80 bytes por registro).
             int byteOffset = 17 + (rrn * 80);
+            
+            // Dispara o algoritmo de inserção na Árvore-B passando a chave (codEstacao) 
+            // e o ponteiro de dados (byteOffset). O cabeçalho é passado por referência 
+            // para controle do proxRRN e noRaiz durante eventuais Splits.
             insertKey(arquivoIndice, byteOffset, regAtual.codEstacao, &header);
         }
-        // Incrementa o RRN para sincronizar com os registros no arquivo binário
+        
+        // INCREMENTO DE SINCRONIZAÇÃO
+        // O RRN lógico avança independentemente do registro ser ativo ou removido,
+        // garantindo que o cálculo matemático do byteOffset permaneça exato.
         rrn++;
     }
 
+    // CONSOLIDAÇÃO DO ARQUIVO DE ÍNDICE
+    // Retorna o status para '1' (consistente), indicando que a árvore-B foi 
+    // completamente formada e o programa não sofreu interrupções.
     header.status = '1';
     writeBinaryHeader(&header, arquivoIndice);
+    
     fclose(arquivoBinario);
     fclose(arquivoIndice);
+    
+    // Acionamento exigido pela plataforma de testes
     BinarioNaTela(indexFileName);
 }
 
@@ -56,6 +88,9 @@ void createIndex(char *binFileName, char *indexFileName) {
  * ao registro. Para outros campos, faz varredura sequencial.
  */
 void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
+    // ABERTURA E CONTROLE DE FLUXOS
+    // Ambos os arquivos são abertos em modo restrito de leitura binária ("rb").
+    // Previne qualquer alteração acidental durante as buscas.
     FILE *arquivoBinario = fopen(binFileName, "rb");
     if (arquivoBinario == NULL) {
         printf("Falha no processamento do arquivo.\n");
@@ -69,7 +104,9 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
         return;
     }
 
-    // verifica consistência do arquivo de dados
+    // EXTRAÇÃO E VALIDAÇÃO DOS CAMPOS DO CABEÇALHO
+    // A especificação exige que a operação aborte caso qualquer um dos arquivos 
+    // tenha sofrido corrupção estrutural (status == '0').
     Header cabecalho;
     readHeader(&cabecalho, arquivoBinario);
     if (cabecalho.status == '0') {
@@ -79,7 +116,6 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
         return;
     }
 
-    // verifica consistência do índice
     binaryHeader headerIndice;
     readBinaryHeader(&headerIndice, arquivoIndice);
     if (headerIndice.status == '0') {
@@ -89,36 +125,56 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
         return;
     }
 
+    // PROCESSAMENTO DE MÚLTIPLAS BUSCAS
     for (int i = 0; i < nroBuscas; i++) {
         int nroCampos;
         scanf("%d", &nroCampos);
 
+        // Prevenção de lixo de memória na struct de flags
         CriteriosBusca criterios = {0};
         lerCriteriosUsuario(&criterios, nroCampos);
 
         int registrosEncontrados = 0;
         Registro regAtual;
 
+        // ALTERNATIVAS DE BUSCA
+        
         if (criterios.flag_codEstacao == 1) {
-            // busca pelo índice: vai direto ao RRN do registro
+            // BUSCA INDEXADA
+            // Como a chave primária foi requisitada, aciona a Árvore-B. Qualquer busca
+            // que utilize este campo deve obrigatoriamente ser feita com o auxílio do índice.
             int byteOffset = searchKey(arquivoIndice, criterios.regBusca.codEstacao, &headerIndice);
 
+            // A chave existe na árvore
             if (byteOffset != -1) {
+                // Acesso Direto: Posiciona o cursor do disco de dados exatamente
+                // no offset físico retornado pelo índice.
                 fseek(arquivoBinario, byteOffset, SEEK_SET);
                 readRegistros(&regAtual, arquivoBinario);
 
+                // CHECAGEM DOS CRITÉRIOS
+                // Mesmo encontrando via índice, é necessário aplicar o checagemCriteriosBusca
+                // caso o usuário tenha fornecido múltiplos filtros (ex: WHERE codEstacao = 1 AND nomeLinha = "Azul").
                 if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
                     printRegistros(&regAtual);
                     registrosEncontrados++;
                 }
             }
         } else {
-            // sem índice disponível — varredura sequencial igual ao Where
+            // VARREDURA SEQUENCIAL
+            // Para buscas que não utilizam a chave primária, a especificação exige 
+            // seguir a lógica da funcionalidade [3].
+            
+            // Pula os 17 bytes do cabeçalho de dados para o reinício da varredura
             fseek(arquivoBinario, 17, SEEK_SET);
 
             while (1) {
+                // Lê fisicamente até o EOF
                 if (!readRegistros(&regAtual, arquivoBinario))
                     break;
+                    
+                // O motor lógico interno garante a validação da flag removido == '0' 
+                // junto com os demais critérios de busca.
                 if (checagemCriteriosBusca(&criterios, &regAtual)) {
                     printRegistros(&regAtual);
                     registrosEncontrados++;
@@ -126,12 +182,15 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
             }
         }
 
+        // OUTPUT DE AUSÊNCIA DE DADOS ---
+        // Exibido unicamente se a busca (seja via Índice ou Varredura) retornar vazia.
         if (!registrosEncontrados)
             printf("Registro inexistente.\n");
 
-        printf("\n");
+        printf("\n"); // Separação visual exigida entre buscas sequenciais
     }
 
+    // ENCERRAMENTO SEGURO
     fclose(arquivoBinario);
     fclose(arquivoIndice);
 }
@@ -221,12 +280,11 @@ void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes) {
     BinarioNaTela(indexFileName);
 }
 
-/*
- * Insere novos registros no arquivo de dados e adiciona as chaves
- * correspondentes no índice árvore-B.
- */
-/*
+
 void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
+    // ABERTURA E CONTROLE DE REGISTROS DUPLOS
+    // Ambos os arquivos precisam ser abertos em "rb+" para permitir a leitura 
+    // das estruturas de navegação (pilha e nós da árvore) e a escrita do novo registro.
     FILE *arquivoBinario = fopen(binFileName, "rb+");
     if (arquivoBinario == NULL) {
         printf("Falha no processamento do arquivo.\n");
@@ -240,6 +298,7 @@ void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
         return;
     }
 
+    // EXTRAÇÃO E VALIDAÇÃO DE CAMPOS DO CABEÇALHO
     Header cabecalho;
     readHeader(&cabecalho, arquivoBinario);
     if (cabecalho.status == '0') {
@@ -258,156 +317,103 @@ void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
         return;
     }
 
+    // INCONSISTÊNCIA DE SEGURANÇA
+    // Trava simultaneamente os dois arquivos. Como a inserção agora é um processo
+    // de duas vias (grava no dado E no índice), uma queda de energia no meio do processo 
+    // invalidará as duas estruturas para leituras futuras.
     cabecalho.status = '0';
     writeHeader(&cabecalho, arquivoBinario);
     headerIndice.status = '0';
     writeBinaryHeader(&headerIndice, arquivoIndice);
 
+    // PROCESSAMENTO DE MÚLTIPLAS INSERÇÕES
     for (int i = 0; i < nroInsercoes; i++) {
         Registro novoReg;
-        preencherNovoRegistro(&novoReg);
-
-        long posicaoEscrita;
-        int rrnNovoRegistro;
-
-        if (cabecalho.topo == -1) {
-            // sem espaço reaproveitável — escreve no fim
-            rrnNovoRegistro = cabecalho.proxRRN;
-            posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
-            cabecalho.proxRRN++;
-        } else {
-            // reaproveta o topo da pilha de removidos
-            rrnNovoRegistro = cabecalho.topo;
-            posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
-
-            fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET);
-            int proximoDaPilha;
-            fread(&proximoDaPilha, sizeof(int), 1, arquivoBinario);
-            cabecalho.topo = proximoDaPilha;
-        }
-
-        fseek(arquivoBinario, posicaoEscrita, SEEK_SET);
-        writeRegistros(&novoReg, arquivoBinario, &cabecalho);
-
-        // insere a chave do novo registro no índice
-        insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
-    }
-
-    cabecalho.status = '1';
-    writeHeader(&cabecalho, arquivoBinario);
-    headerIndice.status = '1';
-    writeBinaryHeader(&headerIndice, arquivoIndice);
-
-    fclose(arquivoBinario);
-    fclose(arquivoIndice);
-
-    BinarioNaTela(binFileName);
-    BinarioNaTela(indexFileName);
-}
-    */
-void insertWithIndex(char *binFileName, char *indexFileName, int nroInsercoes) {
-    FILE *arquivoBinario = fopen(binFileName, "rb+");
-    if (arquivoBinario == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return;
-    }
-
-    FILE *arquivoIndice = fopen(indexFileName, "rb+");
-    if (arquivoIndice == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arquivoBinario);
-        return;
-    }
-
-    Header cabecalho;
-    readHeader(&cabecalho, arquivoBinario);
-    if (cabecalho.status == '0') {
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arquivoBinario);
-        fclose(arquivoIndice);
-        return;
-    }
-
-    binaryHeader headerIndice;
-    readBinaryHeader(&headerIndice, arquivoIndice);
-    if (headerIndice.status == '0') {
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arquivoBinario);
-        fclose(arquivoIndice);
-        return;
-    }
-
-    cabecalho.status = '0';
-    writeHeader(&cabecalho, arquivoBinario);
-    headerIndice.status = '0';
-    writeBinaryHeader(&headerIndice, arquivoIndice);
-    for (int i = 0; i < nroInsercoes; i++) {
-        Registro novoReg;
+        
+        // Função que implementa a extração dos 8 campos da entrada padrão e converte nulos.
         preencherNovoRegistro(&novoReg);
         
-        // 1. ÁRVORE-B: Verifica se a chave primária já existe
+        // TRAVA DE CHAVE PRIMÁRIA (ÍNDICE)
+        // Antes de tentar inserir no disco de dados, consulta a Árvore-B
+        // para garantir que a chave 'codEstacao' não está duplicada.
         int offsetExistente = searchKey(arquivoIndice, novoReg.codEstacao, &headerIndice);
         if (offsetExistente != -1) {
-            continue; 
+            continue; // Aborta esta inserção se a chave já existe
         }
 
+        // VALIDAÇÃO DE CAMPOS DO CABEÇALHO
+        // Para manter o 'nroEstacoes' do cabeçalho correto, é necessário verificar 
+        // se o nome da estação que está sendo inserida é inédito no arquivo de dados.
         int nomeInedito = 0;
         if (novoReg.tamNomeEstacao > 0) {
-            nomeInedito = 1; // Assume que é inédito
-            long posAtual = ftell(arquivoBinario);
+            nomeInedito = 1; // Hipótese inicial
             
-            fseek(arquivoBinario, 17, SEEK_SET); // Pula o cabeçalho
+            // Salva o estado do cursor para não perder a posição de inserção futura
+            long posAtual = ftell(arquivoBinario);
+            fseek(arquivoBinario, 17, SEEK_SET); 
+            
             Registro regBusca;
             int statusLeitura;
             
-            // Varre o arquivo buscando o nome
+            // Varredura sequencial no arquivo para validação de nome de estação inédito
             while ((statusLeitura = readRegistros(&regBusca, arquivoBinario)) != 0) {
                 if (regBusca.tamNomeEstacao == novoReg.tamNomeEstacao) {
                     if (strncmp(regBusca.nomeEstacao, novoReg.nomeEstacao, novoReg.tamNomeEstacao) == 0) {
-                        nomeInedito = 0; // O nome já existia!
+                        nomeInedito = 0; // Correspondência encontrada
                         break;
                     }
                 }
             }
-            fseek(arquivoBinario, posAtual, SEEK_SET); // Restaura o ponteiro
+            fseek(arquivoBinario, posAtual, SEEK_SET); // Restaura o cursor para a alteração
         }
 
+        // GERENCIAMENTO DA PILHA DE REMOVIDOS (REAPROVEITAMENTO DE ESPAÇO)
         long posicaoEscrita;
         int rrnNovoRegistro;
 
         if (cabecalho.topo == -1) {
+            // Caso Base: Arquivo sem espaços disponíveis. Insere no final.
             rrnNovoRegistro = cabecalho.proxRRN;
             posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
             cabecalho.proxRRN++;
         } else {
+            // Reaproveitamento: Sobrescreve o nó no topo da pilha de removidos.
             rrnNovoRegistro = cabecalho.topo;
             posicaoEscrita  = 17 + (rrnNovoRegistro * 80);
 
+            // Desempilha atualizando o cabeçalho com o RRN do próximo nó livre
             fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET);
             int proximoDaPilha;
             fread(&proximoDaPilha, sizeof(int), 1, arquivoBinario);
             cabecalho.topo = proximoDaPilha;
         }
 
-        // 4. ESCRITA FÍSICA E ÍNDICE
+        // DUPLA PERSISTÊNCIA
+        
+        // Arquivo de Dados: Grava o registro de 80 bytes na posição calculada
         fseek(arquivoBinario, posicaoEscrita, SEEK_SET);
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
         
+        // B. Arquivo de Índice: Insere a Chave e o Byte Offset na Árvore-B.
         insertKey(arquivoIndice, posicaoEscrita, novoReg.codEstacao, &headerIndice);
 
-        // 5. ATUALIZAÇÃO SEGURA DO CABEÇALHO
+        // ATUALIZAÇÃO SEGURA DO CABEÇALHO
+        // O incremento do campo que contabiliza pares de estações únicos ocorre 
+        // apenas se a dupla persistência foi concluída com sucesso.
         if (novoReg.codProxEstacao != -1) {
             cabecalho.nroParesEstacao++;
         }
         
-        // Agora sim, a variável nomeInedito traz a verdade!
         if (nomeInedito == 1) {
             cabecalho.nroEstacoes++;
         }
     }
 
+    // CONSOLIDAÇÃO DOS ARQUIVOS
+    // Retorna os dois arquivos para o estado consistente e sobrescreve as configurações atualizadas.
     cabecalho.status = '1';
     writeHeader(&cabecalho, arquivoBinario);
+    
     headerIndice.status = '1';
     writeBinaryHeader(&headerIndice, arquivoIndice);
 

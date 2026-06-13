@@ -16,9 +16,9 @@ typedef struct binaryNode{
     int proximo; // RRN do próximo nó na pilha de nós removidos (apenas para nós removidos)
     int tipoNo; // '-1' para nó folha, '0' para nó raiz, '1' para nó intermediário
     int nroChaves; // Número de chaves atualmente no nó
-    int chaves[3]; // Vetor de chaves (RRNs dos registros correspond
-    int ponteiros[3]; // Vetor de ponteiros para os registros correspondentes às chaves
-    int filhos[4]; // Vetor de RRN dos filhos (apenas para nós internos)
+    int chaves[3]; // Vetor de chaves
+    int ponteiros[3]; // Vetor de ponteiros para o byte offset dps registros correspondentes às chaves
+    int filhos[4]; // Vetor de RRN dos nós filhos
 }binaryNode;
 
 // Funções de manipulação da árvore binária
@@ -39,7 +39,5 @@ void writeBinaryNode(binaryNode *node, FILE *file, int rrn);
 
 // função que cria um nó vazio
 void createEmptyBinaryNode(binaryNode *newNode);
-
-int createNode(FILE *file, binaryHeader *header);
 
 #endif

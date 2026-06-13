@@ -1,6 +1,9 @@
 #include "functionalities.h"
 
+// Implementação da função que realiza a conversão do CSV para binário (Funcionalidade 1)
 void CreateTable(char *inputFileName, char *outputFileName){
+    // Abertura estrita exigida: modo de leitura textual para o CSV e 
+    // modo binário ("wb+") para o arquivo de saída.
     FILE *entrada = fopen(inputFileName, "r");
     FILE *saida = fopen(outputFileName, "wb+");
 
@@ -9,106 +12,118 @@ void CreateTable(char *inputFileName, char *outputFileName){
         return;
     }
 
-    // Inicializa o cabeçalho do arquivo de saída
+    // INICIALIZAÇÃO DO CABEÇALHO
+    // Cria o cabeçalho no estado inconsistente (status = '0') e reserva 
+    // os primeiros 17 bytes no disco. O cabeçalho será reescrito ao final.
     Header cabecalho;
     newHeader(&cabecalho);
-
-    // Escreve o cabeçalho no arquivo de saída
     writeHeader(&cabecalho, saida);
 
-    // Variáveis auxiliares para a leitura do CSV
-    char buffer[256];   // Buffer para armazenar os caracteres lidos no CSV
-    int posBuffer = 0;  // Índice para rastrear a posição atual no buffer
-    char c;             // Char que armazena o caractere lido do arquivo de entrada
-    int fieldIndex = 0; // Índice para rastrear qual campo do registro está sendo preenchido
+    // VARIÁVEIS PARA EXECUÇÃO DO PARSER DO CSV
+    char buffer[256];
+    int posBuffer = 0;
+    char c;
+    int fieldIndex = 0; // Mapeia a coluna atual do CSV para a struct Registro
     
     Registro regAtual;
-    Estacoes nomesEPares = {0};    // Estrutura para armazenar as estações e os pares de estações únicas
+    Estacoes nomesEPares = {0}; // Estrutura auxiliar em RAM para contabilizar nomes e pares de estações únicos
 
-    // Pula a primeira linha do arquivo de entrada (cabeçalho)
+    // Salto do cabeçalho CSV: percorre a primeira linha até o '\n'
     while(fread(&c, sizeof(char), 1, entrada) == 1 && c != '\n');
 
-    // Loop de leitura dos campos do arquivo de entrada (caractere a caractere)
+    // LEITURA BYTE A BYTE
+    // Varredura contínua, com atenção para lidar com colunas vazias consecutivas.
     while(fread(&c, sizeof(char), 1, entrada) == 1){
-        if (c == '\r')
+        if (c == '\r') // Ignora o carriage return do padrão Windows (CRLF)
             continue;
-        if (c == ',' || c == '\n'){   // Verifica a condição de final de um campo ou de um registro
+        
+        // Fim de um campo (',') ou fim de um registro inteiro ('\n')
+        if (c == ',' || c == '\n'){
             buffer[posBuffer] = '\0'; // Sinaliza o final da string no buffer
 
-            // Função que preenche o campo correspondente no registro atual com base no índice do campo
+            // Delega o preenchimento da struct com base no índice da coluna
             writeCampos(buffer, fieldIndex, &regAtual);
-            posBuffer = 0; // Sinaliza que o buffer está vazio para a leitura do próximo campo
+            posBuffer = 0; // Reset lógico do buffer para a próxima extração
 
-            // Se o registro foi completamente preenchido (quebra de linha), escreve no binário. Se não, preenche o próximo campo
             if (c == '\n'){
-                // Verificar se a estação atual é única
+                // PERSISTÊNCIA E PREVENÇÃO DE LIXO
+                // Verifica a exclusividade do nome e par da estação antes de gravar no disco
                 isEstacaoUnica(&nomesEPares, regAtual.nomeEstacao);
-                // Verificar se o par de estações atual é único
                 isParUnico(&nomesEPares, regAtual.codEstacao, regAtual.codProxEstacao);
 
+                // Grava os exatos 80 bytes do registro estruturado
                 writeRegistros(&regAtual, saida, &cabecalho);
-                cabecalho.proxRRN++; // Incrementa o próximo RRN disponível no cabeçalho para o próximo registro a ser escrito
-                fieldIndex = 0; // Os campos foram todos preenchidos, o próximo campo será o primeiro do próximo registro
+                cabecalho.proxRRN++;
+                fieldIndex = 0; // Reinicia a contagem de colunas para a próxima linha
 
-                // Limpar o registro atual para a leitura do próximo registro
+                // Limpeza e Padding: Zera a struct e injeta obrigatoriamente
+                // o caractere '$' nos campos de tamanho variável para evitar lixo de memória.
                 memset(&regAtual, 0, sizeof(Registro));
-                // Preencher campos variáveis com '$' para evitar lixo
                 memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
                 memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
             }
             else
-                fieldIndex++; // Sinaliza que a leitura de um campo foi concluída, passando para o próximo
+                fieldIndex++; /// Avança o mapeamento para o próximo campo da linha
         }
-
-        // A leitura do campo ainda não foi concluída, continua lendo os caracteres
         else{
-            // Adiciona o caractere ao buffer
+            // Acúmulo de estado: constrói o valor do campo atual
             buffer[posBuffer] = c;
             posBuffer++; // Incrementa o índice do buffer para a próxima posição
         }
     }
 
-    // Verifica se há dados pendentes no buffer ou campo incompleto no fim do arquivo
-    // por exemplo quando o último campo é ...
+    // TRATAMENTO DE EOF (FIM DE ARQUIVO) ABRUPTO
+    // Garante que o último registro seja persistido caso o CSV termine 
+    // sem uma quebra de linha ('\n') no final da última string.
     if (fieldIndex > 0 || posBuffer > 0){
-        // Sinaliza o final da string no buffer para o último campo
         buffer[posBuffer] = '\0';
         writeCampos(buffer, fieldIndex, &regAtual);
-        // Verificar se a estação atual é única
         isEstacaoUnica(&nomesEPares, regAtual.nomeEstacao);
-        // Verificar se o par de estações atual é único
         isParUnico(&nomesEPares, regAtual.codEstacao, regAtual.codProxEstacao);
-        // Escreve o último registro no arquivo binário de saída
         writeRegistros(&regAtual, saida, &cabecalho);
-        // Incrementa o próximo RRN disponível no cabeçalho para o próximo registro a ser escrito
         cabecalho.proxRRN++;
     }
 
-    cabecalho.nroEstacoes = nomesEPares.numEstacoes; // Atribui o número de estações únicas ao campo correspondente no cabeçalho
-    cabecalho.nroParesEstacao = nomesEPares.numParesEstacao; // Atribui o número de pares de estações únicas ao campo correspondente no cabeçalho
-    cabecalho.status = '1';         // Sinaliza que o arquivo foi criado corretamente
-    fseek(saida, 0, SEEK_SET);      // Posiciona o ponteiro do arquivo no início para atualizar o cabeçalho
-    writeHeader(&cabecalho, saida); // Atualiza os valores do cabeçalho no arquivo de saída
+    // CONSOLIDAÇÃO DO ARQUIVO BINÁRIO
+    // Escreve os valores dos campos acumulados na RAM no cabeçalho.
+    cabecalho.nroEstacoes = nomesEPares.numEstacoes;
+    cabecalho.nroParesEstacao = nomesEPares.numParesEstacao;
+
+    // Altera o status para consistente e retrocede o cursor para o byte 0.
+    cabecalho.status = '1';
+    fseek(saida, 0, SEEK_SET);
+    writeHeader(&cabecalho, saida);
+
     fclose(entrada);
     fclose(saida);
     BinarioNaTela(outputFileName);
 }
 
+// Implementação da função que imprime os registros do arquivo binário
 void Select(char *FileName){
+    // ABERTURA DO ARQUIVO
+    // Modo "rb" (read binary) obrigatório, pois a operação é estritamente de leitura.
     FILE *file = fopen(FileName, "rb");
+    
+    // Trava de segurança para evitar SegFault caso o arquivo não exista no diretório.
+    if (file == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
 
-    // Acessar o cabeçalho do arquivo
+    // ACESSO AO CABEÇALHO
+    // Extrai os primeiros 17 bytes para avaliar o status e campos no cabeçalho do arquivo.
     Header cabecalho;
     readHeader(&cabecalho, file);
 
-    // Verificar o status do arquivo
+    // VERIFICAÇÃO DE INTEGRIDADE
     if (cabecalho.status == '0'){
         printf("Falha no processamento do arquivo.\n");
         fclose(file);
         return;
     }
 
-    // Verificar se há registros no arquivo
+    // VERIFICAÇÃO DE CONTEÚDO
     if (cabecalho.nroEstacoes == 0){
         printf("Registro inexistente.\n");
         fclose(file);
@@ -116,285 +131,375 @@ void Select(char *FileName){
     }
 
     Registro regAtual;
-    int registrosEncontrados = 0; // Variável para contar o número de registros encontrados para imprimir a mensagem de "Registro inexistente" caso nenhum registro seja encontrado
+    int registrosEncontrados = 0; // Rastreador de busca
 
-    // Loop para ler os registros
+    // VARREDURA SEQUENCIAL
+    // Percorre o disco registro a registro de forma linear, do início ao fim.
     while (1){
+        // A função readRegistros consome exatos 80 bytes por iteração.
         int statusLeitura = readRegistros(&regAtual, file);
+        
         if (statusLeitura == 0)
-            break; // Fim do arquivo
+            break; // EOF (Fim de arquivo) alcançado
+            
         if (statusLeitura == 2)
-            continue; // Registro removido, pula para o próximo registro
+            continue; // Registro marcado como removido ('1'). Salto de 79 bytes já foi feito no parser.
 
+        // IMPRESSÃO E CONTABILIZAÇÃO
+        // O registro é válido e ativo. Chama função de formatação de saída e do tratamento de nulos.
         printRegistros(&regAtual);
         registrosEncontrados++;
     }
+    
+    // VALIDAÇÃO FINAL E ENCERRAMENTO
+    // Resultado para o caso extremo onde o arquivo possui registros físicos, 
+    // mas absolutamente todos estão logicamente removidos.
     if (!registrosEncontrados)
         printf("Registro inexistente.\n");
+        
     fclose(file);
 }
 
+// Implementação da função que imprime registros com base em um conjunto de critérios
 void Where(char *FileName, int nroBuscas){
+    // ABERTURA DO ARQUIVO
+    // Modo de leitura estrita ("rb"). Os dados não são alterados nessa funcionalidade.
     FILE *file = fopen(FileName, "rb");
 
-    // Acessar o cabeçalho do arquivo
+    if (file == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    // ACESSO E VALIDAÇÃO DO CABEÇALHO
+    // Extrai os 17 bytes do cabeçalho para garantir que o arquivo não está corrompido.
     Header cabecalho;
     readHeader(&cabecalho, file);
-    // Verificar o status do arquivo
+    
     if (cabecalho.status == '0'){
         printf("Falha no processamento do arquivo.\n");
         fclose(file);
         return;
     }
 
-    int nroCampos; // Variável para armazenar o número de campos a serem buscados em cada busca
-    // Ler os N pares de campo e conteúdo
+    int nroCampos; 
+
+    // PROCESSAMENTO DAS MÚLTIPLAS BUSCAS
+    // Executa o bloco de pesquisa para a quantidade exata de buscas exigida pela entrada.
     for (int i = 0; i < nroBuscas; i++){
-        // Lê o número de campos a serem buscados para cada busca
+        
+        // LEITURA DE CRITÉRIOS DE BUSCA
+        // Obtém a quantidade de filtros lógicos que serão aplicados a esta busca
         scanf("%d", &nroCampos);
 
         CriteriosBusca criterios = {0}; 
-        lerCriteriosUsuario(&criterios, nroCampos); // Reaproveitamento total de código!
+        lerCriteriosUsuario(&criterios, nroCampos); // Centraliza e processa os dados do input
 
-        // Posicionar o ponteiro do arquivo no início dos registros para a execução de múltiplas buscas
+        // PREPARAÇÃO DO CURSOR
+        // Posiciona o ponteiro do arquivo exatamente no byte 17 (início do primeiro registro de dados).
+        // Isso é obrigatório para garantir que buscas subsequentes leiam o arquivo desde o começo, 
+        // evitando a sobrecarga de sistema causada por múltiplos fclose/fopen.
         fseek(file, 17, SEEK_SET);
 
-        // Acessar os registros e fazer as verificações para imprimir os registros que atendem às condições de busca
         Registro regAtual;
-        int registrosEncontrados = 0; // Variável para contar o número de registros encontrados que atendem aos critérios de busca
+        int registrosEncontrados = 0; 
 
+        // VARREDURA SEQUENCIAL
+        // Navega fisicamente pelos registros até atingir o fim do arquivo (EOF).
         while (1){
-            //memset(&regAtual, 0, sizeof(Registro));
-            // Inicializar campos variáveis com '$' para evitar lixo
-            //memset(regAtual.nomeEstacao, '$', sizeof(regAtual.nomeEstacao));
-            //memset(regAtual.nomeLinha, '$', sizeof(regAtual.nomeLinha));
-
-            // Loop para preencher registros e verificar se está no final do arquivo
+            // A leitura realiza o salto de registros logicamente removidos e consome os 80 bytes.
             if (!readRegistros(&regAtual, file))
                 break;
 
-            // Comparar registro atual com os critérios de busca
+            // AVALIAÇÃO DE CONDIÇÕES E IMPRESSÃO
+            // A função auxiliar aplica o conjunto de critérios (múltiplas combinações de colunas)
             if (checagemCriteriosBusca(&criterios, &regAtual)){
                 printRegistros(&regAtual);
                 registrosEncontrados++;
                 
-                // Se o critério de busca for o código da estação, que é um valor único, para a busca quando encontrar a correspondência
+                // OTIMIZAÇÃO DE BUSCA
+                // Se o critério contém 'codEstacao' (chave primária, garantidamente única 
+                // pela Funcionalidade 1), a varredura é abortada assim que a primeira e única 
+                // correspondência é encontrada, economizando tempo de I/O em disco.
                 if (criterios.flag_codEstacao == 1)
                     break;
             }
         }
 
+        // RESULTADO DE AUSÊNCIA
+        // Exibido unicamente se a varredura alcançou o EOF sem que o contador sofresse incremento.
         if (!registrosEncontrados)
             printf("Registro inexistente.\n");
         
         printf("\n");
     }
+    
     fclose(file);
 }
 
+// Implementação da função que marca registros que atendam a um conjunto de critérios como removidos.
 void Delete(char *FileName, int nroRemocoes){
+    // ABERTURA DO ARQUIVO
+    // Modo "rb+" obrigatório: permite percorrer o arquivo lendo registros e, simultaneamente, 
+    // reescrever bytes específicos no meio do arquivo
     FILE *arquivoBinario = fopen(FileName, "rb+");
     if (arquivoBinario == NULL){
         printf("Falha no processamento do arquivo.\n");
         return;
     }
 
-    // Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
+    // EXTRAÇÃO E VALIDAÇÃO DO CABEÇALHO
     Header cabecalho;
     readHeader(&cabecalho, arquivoBinario);
 
-    // Verifica consistencia
     if (cabecalho.status == '0'){
         printf("Falha no processamento do arquivo.\n");
         fclose(arquivoBinario);
         return;
     }
 
-    // Marca como inconsistente durante a execucao
+    // INCONSISTÊNCIA DE SEGURANÇA
     cabecalho.status = '0';
     writeHeader(&cabecalho, arquivoBinario);
 
-    // Loop para fazer as N remoções, lendo os critérios de busca e percorrendo os registros
+    // PROCESSAMENTO DE MÚLTIPLAS DELEÇÕES
+    // Loop que controla quantas instruções de exclusão independentes foram requisitadas.
     for (int i = 0; i < nroRemocoes; i++){
         int m;
         scanf("%d", &m);
 
-        // Zerando as flags manualmente para garantir que lixo de memoria nao interfira
+        // Prevenção de lixo
         CriteriosBusca criterios = {0}; 
-
-        // Preenche a struct dos critérios de busca
-        lerCriteriosUsuario(&criterios, m); // Reaproveitamento total de código!
+        lerCriteriosUsuario(&criterios, m); // Realiza o parse da entrada padrão
 
         Registro regAtual;
         int rrn = 0;
 
-        // Pula o cabecalho de 17 bytes para comecar a ler os registros
+        // PREPARAÇÃO DO CURSOR
+        // Avança 17 bytes para pular o cabeçalho e alinhar o ponteiro do disco no RRN 0.
         fseek(arquivoBinario, 17, SEEK_SET);
 
-        // Percorre os registros para encontrar os que atendem aos critérios de remoção
+        // VARREDURA DE LOCALIZAÇÃO E MUTABILIDADE
         while (readRegistros(&regAtual, arquivoBinario)){
-            // Se nao esta removido e bate com a busca
+            // Garante que um registro já removido não sofra nova remoção,
+            // o que causaria ciclos infinitos ou perda de encadeamento na pilha de reaproveitamento.
             if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)){
-                // Atualiza flags de remocao
-                regAtual.removido = '1';
-                regAtual.proximo = cabecalho.topo; // aponta pro antigo topo da pilha
-                cabecalho.topo = rrn;              // atualiza o topo do cabecalho com o RRN atual
                 
-                // Volta o ponteiro do arquivo para o início do registro atual para escrever a marcação de remoção e o próximo da pilha
+                // GERENCIAMENTO DA PILHA DE REMOVIDOS
+                regAtual.removido = '1';
+                regAtual.proximo = cabecalho.topo; 
+                cabecalho.topo = rrn;              
+                
+                // ATUALIZAÇÃO DA LOCALIZAÇÃO DO CURSOR
+                // A função readRegistros consome 80 bytes. O cursor do disco parou no início 
+                // do próximo registro. O fseek negativo recua 80 bytes, posicionado o cursor 
+                // no byte 0 do registro recém-analisado para permitir a sobrescrita.
                 fseek(arquivoBinario, -80, SEEK_CUR);
 
-                // Escreve os 5 bytes modificados (1 do removido + 4 do proximo RRN)
+                // Escreve estritamente os 5 bytes dos campos do cabeçalho referentes à pilha (1 de char + 4 de inteiro)
                 fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
                 fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
 
-                // Pula os 75 bytes restantes para deixar o cursor pronto para o próximo registro
+                // RESTAURAÇÃO DO CURSOR PARA LEITURA
+                // Como 5 bytes já foram percorridos, avança 75 bytes diretos sem ler dados desnecessários,
+                // alinhando o cursor no byte 0 do próximo registro lógico.
                 fseek(arquivoBinario, 75, SEEK_CUR);
             }
-            rrn++;
+            rrn++; // Mantém o sincronismo entre a posição lógica e a física
         }
-        // Volta para o primeiro registro para a proxima busca do laco nroRemocoes
-        fseek(arquivoBinario, 17, SEEK_SET);
     }
 
-    // Retorna status para consistente e salva cabecalho
+    // CONSOLIDAÇÃO E VALIDAÇÃO
+    // Restaura o status indicando que todas as atualizações e encadeamentos da pilha 
+    // ocorreram com sucesso. O cabeçalho é reescrito no offset 0 contendo o novo 'topo'.
     cabecalho.status = '1';
-    // Atualiza o cabeçalho no arquivo
     writeHeader(&cabecalho, arquivoBinario);
+    
     fclose(arquivoBinario);
+    
     BinarioNaTela(FileName);
 }
 
+// Implementação da função que insere novos registros, reaproveitando a pilha de registros logicamente removidos
 void Insert(char *FileName, int nroInsercoes){
+    // ABERTURA DO ARQUIVO
+    // Modo "rb+" exigido para permitir tanto a escrita no fim do arquivo quanto a 
+    // sobrescrita em espaços reaproveitados no meio do arquivo.
     FILE *arquivoBinario = fopen(FileName, "rb+");
     if (arquivoBinario == NULL){
         printf("Falha no processamento do arquivo.\n");
         return;
     }
 
-    // Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
+    // EXTRAÇÃO E VALIDAÇÃO DO CABEÇALHO
     Header cabecalho;
     readHeader(&cabecalho, arquivoBinario);
 
-    // Verifica consistencia
     if (cabecalho.status == '0'){
         printf("Falha no processamento do arquivo.\n");
         fclose(arquivoBinario);
         return;
     }
 
-    // Marca como inconsistente
+    // INCONSISTÊNCIA DE SEGURANÇA
     cabecalho.status = '0';
     writeHeader(&cabecalho, arquivoBinario);
 
+    // PROCESSAMENTO DE MÚLTIPLAS INSERÇÕES
     for (int i = 0; i < nroInsercoes; i++){
         Registro novoReg;
+        
+        // Função responsável pela leitura e a formatação da entrada padrão
         preencherNovoRegistro(&novoReg);
     
-        // Lógica de reaproveitamento de espaço
+        // CÁLCULO DE OFFSET E GERENCIAMENTO DA PILHA
         long posicaoEscrita;
 
         if (cabecalho.topo == -1){
-            // Escreve no final do arquivo
+            // CASO 1: PILHA VAZIA (Sem registros removidos)
+            // A inserção ocorre no final lógico do arquivo. 
+            // Cálculo: 17 bytes do cabeçalho + (RRN atual * 80 bytes por registro).
             posicaoEscrita = 17 + (cabecalho.proxRRN * 80);
             cabecalho.proxRRN++;
         }
         else{
-            // Reaproveita o espaco do topo da pilha
+            // CASO 2: REAPROVEITAMENTO DE ESPAÇO
+            // Existe pelo menos um espaço logicamente removido disponível.
             int rrnReaproveitado = cabecalho.topo;
             posicaoEscrita = 17 + (rrnReaproveitado * 80);
 
-            // Le o campo de proximo do registro atual
-            fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET); // Pula 1 byte do 'removido'
+            // ATUALIZAÇÃO DO ENCADEAMENTO DA PILHA
+            // Posiciona o cursor fisicamente no RRN a ser reaproveitado, pulando 1 byte 
+            // (que corresponde ao campo char 'removido') para acessar diretamente 
+            // o inteiro 'proximo', que contém o RRN do próximo espaço livre.
+            fseek(arquivoBinario, posicaoEscrita + 1, SEEK_SET); 
+            
             int proximoDaPilha;
             fread(&proximoDaPilha, sizeof(int), 1, arquivoBinario);
 
-            cabecalho.topo = proximoDaPilha; // Atualiza o topo do cabecalho
+            // O cabeçalho herda o ponteiro, desempilhando o nó atual
+            cabecalho.topo = proximoDaPilha; 
         }
+        
+        // POSICIONAMENTO FINAL E PERSISTÊNCIA
+        // Crava o cursor no offset exato
         fseek(arquivoBinario, posicaoEscrita, SEEK_SET);
 
-        //Escrever o registro no arquivo binário
+        // A função writeRegistros implementa a injeção de lixo ('$') e garante a escrita 
+        // estrita dos 80 bytes do novo registro por cima do espaço alocado.
         writeRegistros(&novoReg, arquivoBinario, &cabecalho);
     }
 
+    // CONSOLIDAÇÃO E VALIDAÇÃO
+    // Operações de disco concluídas. O status retorna para consistente e o cabeçalho 
+    // é persistido com os novos valores de 'proxRRN' e/ou 'topo'.
     cabecalho.status = '1';
     writeHeader(&cabecalho, arquivoBinario);
+    
     fclose(arquivoBinario);
+    
     BinarioNaTela(FileName);
 }
 
-void Update(char *FileName, int nroAtualizacoes) {
-        FILE *arquivoBinario = fopen(FileName, "rb+");
-        if (arquivoBinario == NULL) {
-            printf("Falha no processamento do arquivo.\n");
-            return;
-        }
-
-        // Ler o cabeçalho do arquivo e guardar na struct de cabeçalho
-        Header cabecalho;
-        readHeader(&cabecalho, arquivoBinario);
-
-        // Verifica consistencia
-        if (cabecalho.status == '0') {
-            printf("Falha no processamento do arquivo.\n");
-            fclose(arquivoBinario);
-            return;
-        }
-
-        for (int i = 0; i < nroAtualizacoes; i++) {
-            int m;
-            scanf("%d", &m);
-            CriteriosBusca criterios = {0}; // Inicializa a struct de critérios de busca, zerando as flags
-            lerCriteriosUsuario(&criterios, m);
-
-            //Cria matrizes para guardar os campos que serão atualizados e seus respectivos valores
-            int p;
-            scanf("%d", &p);
-            char camposUpdate[10][50];
-            char valoresUpdate[10][100];
-            
-            // Le os campos a serem atualizados (SET)
-            for (int k = 0; k < p; k++) {
-                scanf("%s", camposUpdate[k]);
-                //A depender do campo, lê como inteiro ou string
-                if (strcmp(camposUpdate[k], "nomeEstacao") == 0 || strcmp(camposUpdate[k], "nomeLinha") == 0)
-                    ScanQuoteString(valoresUpdate[k]);
-                else
-                    scanf("%s", valoresUpdate[k]);
-            }
-
-            Registro regAtual;
-            int rrn = 0;
-
-            //Criar função para pular registro (modularizar)
-            fseek(arquivoBinario, 17, SEEK_SET);
-
-            // Busca sequencial no arquivo
-            while (readRegistros(&regAtual, arquivoBinario)) {
-                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
-                    // Aplica atualizacoes no registro em memoria
-                    updateRegistro(&regAtual, camposUpdate, valoresUpdate, p);
-                    
-                    // Volta para o inicio do registro para sobrescrever
-                    long posicaoRegistro = 17 + (rrn * 80);
-                    fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
-                    
-                    //Atualiza os registros atualizados no arquivo binário
-                    writeRegistros(&regAtual, arquivoBinario, &cabecalho);
-
-                    // Pula para o final deste registro para continuar o while
-                    fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
-                }
-                rrn++;
-            }
-            //Volta para o início dos registros 
-            fseek(arquivoBinario, 17, SEEK_SET);
-        }
-
-        // Recalcula estações e pares únicos baseado nos registros atualizados
-        //recalcularEstacoesPares(arquivoBinario, &cabecalho);
-
-        cabecalho.status = '1';
-        writeHeader(&cabecalho, arquivoBinario);
-        fclose(arquivoBinario);
-        BinarioNaTela(FileName);
+// Implementação da função que atualiza os campos de registros determinados por critérios de busca fornecidos pelo usuário
+void Update(char *FileName, int nroAtualizacoes){
+    // ABERTURA DO ARQUIVO
+    // Modo "rb+" estritamente necessário para percorrer o disco em busca dos registros
+    // e sobrescrevê-los fisicamente nas mesmas posições originais.
+    FILE *arquivoBinario = fopen(FileName, "rb+");
+    if (arquivoBinario == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return;
     }
+
+    // EXTRAÇÃO DO CABEÇALHO E VERIFICAÇÃO DE INTEGRIDADE
+    Header cabecalho;
+    readHeader(&cabecalho, arquivoBinario);
+
+    if (cabecalho.status == '0') {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arquivoBinario);
+        return;
+    }
+
+    // INCONSISTÊNCIA DE SEGURANÇA
+    cabecalho.status = '0';
+    writeHeader(&cabecalho, arquivoBinario);
+
+    // PROCESSAMENTO DE MÚLTIPLAS ATUALIZAÇÕES
+    for (int i = 0; i < nroAtualizacoes; i++) {
+        
+        // LEITURA DOS CRITÉRIOS DE BUSCA
+        int m;
+        scanf("%d", &m);
+        CriteriosBusca criterios = {0}; // Zera as flags para evitar lixo
+        lerCriteriosUsuario(&criterios, m);
+
+        // LEITURA DOS CAMPOS A SEREM ATUALIZADOS
+        int p;
+        scanf("%d", &p);
+        
+        // Matrizes para armazenar o par (Chave-Valor) das atualizações solicitadas
+        char camposUpdate[10][50];
+        char valoresUpdate[10][100];
+        
+        for (int k = 0; k < p; k++) {
+            scanf("%s", camposUpdate[k]);
+            
+            // TRATAMENTO DE STRINGS (Aspas Duplas)
+            // Se o campo for variável, aciona o ScanQuoteString para processar as 
+            // aspas duplas, englobando valores compostos (ex: "Parada Inglesa").
+            if (strcmp(camposUpdate[k], "nomeEstacao") == 0 || strcmp(camposUpdate[k], "nomeLinha") == 0)
+                ScanQuoteString(valoresUpdate[k]);
+            else
+                scanf("%s", valoresUpdate[k]);
+        }
+
+        Registro regAtual;
+        int rrn = 0;
+
+        // ALINHAMENTO DO CURSOR PARA VARREDURA
+        // Retorna ao primeiro byte do registro lógico inicial, pulando os 17 bytes de cabeçalho
+        fseek(arquivoBinario, 17, SEEK_SET);
+
+        // BUSCA SEQUENCIAL E ALTERAÇÕES
+        while (readRegistros(&regAtual, arquivoBinario)) {
+            
+            // Identifica registros que satisfazem os critérios da cláusula WHERE
+            if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                
+                // ALTERAÇÃO DOS CAMPOS DO REGISTRO
+                // Substitui os campos antigos pelos novos armazenados nas matrizes de update
+                updateRegistro(&regAtual, camposUpdate, valoresUpdate, p);
+                
+                // CÁLCULO E REPOSICIONAMENTO DO CURSOR FÍSICO
+                // Como readRegistros avança 80 bytes, calcula o offset absoluto de onde esse
+                // registro deveria estar e reposiciona o cursor antes de realizar a gravação.
+                long posicaoRegistro = 17 + (rrn * 80);
+                fseek(arquivoBinario, posicaoRegistro, SEEK_SET);
+                
+                // PERSISTÊNCIA E PADRONIZAÇÃO DE LIXO
+                // Grava os 80 bytes modificados. A função writeRegistros garante a injeção
+                // de caracteres '$' nos espaços vazios deixados por possíveis mudanças no tamanho de strings.
+                writeRegistros(&regAtual, arquivoBinario, &cabecalho);
+
+                // REPOSICIONAMENTO PARA LEITURA
+                // Restaura o cursor para o final do registro modificado, permitindo
+                // que o laço while(readRegistros...) continue a leitura perfeitamente.
+                fseek(arquivoBinario, posicaoRegistro + 80, SEEK_SET);
+            }
+            rrn++; // Mantém sincronia entre os registros lidos e a posição física
+        }
+        
+        // RESET PARA PRÓXIMA ALTERAÇÃO
+        // Volta o cursor para o início dos dados para a próxima rodada de atualizações.
+        fseek(arquivoBinario, 17, SEEK_SET);
+    }
+
+    // CONSOLIDAÇÃO E VALIDAÇÃO FINAL
+    cabecalho.status = '1';
+    writeHeader(&cabecalho, arquivoBinario);
+    fclose(arquivoBinario);
+    
+    BinarioNaTela(FileName);
+}
