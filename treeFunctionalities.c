@@ -197,7 +197,8 @@ void searchWithIndex(char *binFileName, char *indexFileName, int nroBuscas) {
 
 /*
  * Remove logicamente registros do arquivo de dados que atendem aos
- * critérios de busca, e remove as chaves correspondentes do índice.
+ * criterios de busca, e remove as chaves correspondentes do indice.
+ * Utiliza o indice Arvore-B caso o criterio de busca envolva codEstacao.
  */
 void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes) {
     FILE *arquivoBinario = fopen(binFileName, "rb+");
@@ -231,7 +232,7 @@ void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes) {
         return;
     }
 
-    // marca ambos os arquivos como inconsistentes durante a operação
+    // marca ambos os arquivos como inconsistentes durante a operacao
     cabecalho.status = '0';
     writeHeader(&cabecalho, arquivoBinario);
     headerIndice.status = '0';
@@ -245,27 +246,109 @@ void deleteWithIndex(char *binFileName, char *indexFileName, int nroRemocoes) {
         lerCriteriosUsuario(&criterios, m);
 
         Registro regAtual;
-        int rrn = 0;
-        fseek(arquivoBinario, 17, SEEK_SET);
 
-        while (readRegistros(&regAtual, arquivoBinario)) {
-            if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
-                // remove a chave do índice antes de marcar o registro
-                removeKey(arquivoIndice, regAtual.codEstacao, &headerIndice);
+        // se a busca for pela chave primaria (codEstacao), usa o indice para ir direto
+        if (criterios.flag_codEstacao == 1) {
+            int byteOffset = searchKey(arquivoIndice, criterios.regBusca.codEstacao, &headerIndice);
 
-                // marca o registro como removido no arquivo de dados
-                regAtual.removido = '1';
-                regAtual.proximo  = cabecalho.topo;
-                cabecalho.topo    = rrn;
+            if (byteOffset != -1) {
+                fseek(arquivoBinario, byteOffset, SEEK_SET);
+                readRegistros(&regAtual, arquivoBinario);
 
-                fseek(arquivoBinario, -80, SEEK_CUR);
-                fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
-                fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
-                fseek(arquivoBinario, 75, SEEK_CUR);
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    removeKey(arquivoIndice, regAtual.codEstacao, &headerIndice);
+
+                    // decrementa o nro de pares se a estacao tiver uma proxima ligada a ela
+                    if (regAtual.codProxEstacao != -1) {
+                        cabecalho.nroParesEstacao--;
+                    }
+
+                    // verifica se o nome da estacao vai sumir do arquivo pra decrementar no cabecalho
+                    if (regAtual.tamNomeEstacao > 0) {
+                        int contagem = 0;
+                        long posAtual = ftell(arquivoBinario); // salva a posicao atual
+
+                        fseek(arquivoBinario, 17, SEEK_SET); // pula o cabecalho pra iniciar a varredura
+                        Registro regBusca;
+                        
+                        while (readRegistros(&regBusca, arquivoBinario)) {
+                            if (regBusca.removido == '0' && regBusca.tamNomeEstacao == regAtual.tamNomeEstacao) {
+                                if (strncmp(regBusca.nomeEstacao, regAtual.nomeEstacao, regAtual.tamNomeEstacao) == 0) {
+                                    contagem++;
+                                }
+                            }
+                        }
+
+                        // se achar so 1, eh pq eh o proprio registro que ta sendo removido agora
+                        if (contagem == 1) {
+                            cabecalho.nroEstacoes--;
+                        }
+
+                        fseek(arquivoBinario, posAtual, SEEK_SET); // devolve o ponteiro
+                    }
+
+                    // calcula o RRN baseado no byteOffset (descontando o cabecalho de 17 bytes)
+                    int rrn = (byteOffset - 17) / 80;
+
+                    regAtual.removido = '1';
+                    regAtual.proximo  = cabecalho.topo;
+                    cabecalho.topo    = rrn;
+
+                    fseek(arquivoBinario, byteOffset, SEEK_SET);
+                    fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
+                    fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
+                }
             }
-            rrn++;
+        } else {
+            // sem chave primaria na busca, faz varredura sequencial
+            int rrn = 0;
+            fseek(arquivoBinario, 17, SEEK_SET);
+
+            while (readRegistros(&regAtual, arquivoBinario)) {
+                if (regAtual.removido == '0' && checagemCriteriosBusca(&criterios, &regAtual)) {
+                    removeKey(arquivoIndice, regAtual.codEstacao, &headerIndice);
+
+                    // decrementa o nro de pares se a estacao tiver uma proxima ligada a ela
+                    if (regAtual.codProxEstacao != -1) {
+                        cabecalho.nroParesEstacao--;
+                    }
+
+                    // verifica se o nome da estacao vai sumir do arquivo pra decrementar no cabecalho
+                    if (regAtual.tamNomeEstacao > 0) {
+                        int contagem = 0;
+                        long posAtual = ftell(arquivoBinario); // salva a posicao atual
+
+                        fseek(arquivoBinario, 17, SEEK_SET); // pula o cabecalho pra iniciar a varredura
+                        Registro regBusca;
+                        
+                        while (readRegistros(&regBusca, arquivoBinario)) {
+                            if (regBusca.removido == '0' && regBusca.tamNomeEstacao == regAtual.tamNomeEstacao) {
+                                if (strncmp(regBusca.nomeEstacao, regAtual.nomeEstacao, regAtual.tamNomeEstacao) == 0) {
+                                    contagem++;
+                                }
+                            }
+                        }
+
+                        // se achar so 1, eh pq eh o proprio registro que ta sendo removido agora
+                        if (contagem == 1) {
+                            cabecalho.nroEstacoes--;
+                        }
+
+                        fseek(arquivoBinario, posAtual, SEEK_SET); // devolve o ponteiro
+                    }
+
+                    regAtual.removido = '1';
+                    regAtual.proximo  = cabecalho.topo;
+                    cabecalho.topo    = rrn;
+
+                    fseek(arquivoBinario, -80, SEEK_CUR);
+                    fwrite(&regAtual.removido, sizeof(char), 1, arquivoBinario);
+                    fwrite(&regAtual.proximo, sizeof(int), 1, arquivoBinario);
+                    fseek(arquivoBinario, 75, SEEK_CUR);
+                }
+                rrn++;
+            }
         }
-        fseek(arquivoBinario, 17, SEEK_SET);
     }
 
     cabecalho.status = '1';
