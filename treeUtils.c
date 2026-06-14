@@ -12,12 +12,9 @@
 int alocarRRN(FILE *file, binaryHeader *header) {
     int rrn;
     
-    //GERENCIAMENTO DINÂMICO DE ESPAÇO (REAPROVEITAMENTO DA PILHA DE REMOVIDOS)
-    // Verifica se existem páginas da Árvore-B que foram liberadas anteriormente 
-    // por rotinas de concatenação e estão disponíveis para reuso.
-    if (header->topo != -1) {
+    // REAPROVEITAMENTO DA PILHA DE REMOVIDOS
+    if (header->topo != -1){
         
-        // REAPROVEITAMENTO DE PÁGINA
         // Seleciona o RRN que está no topo da lista encadeada de removidos.
         rrn = header->topo;
         
@@ -28,18 +25,16 @@ int alocarRRN(FILE *file, binaryHeader *header) {
         
         // O cabeçalho da Árvore-B herda o ponteiro, removendo o nó atual da pilha
         header->topo = topo.proximo;
-    } else {
-        
+    } 
+    else{
         // AUMENTO DO TAMANHO FÍSICO DO ARQUIVO
-        // A pilha está vazia. Aloca o RRN sequencial disponível ao final do arquivo 
+        // A pilha está vazia. Aloca o RRN ao final do arquivo 
         // e incrementa o campo de proxRRN para a próxima chamada.
         rrn = header->proxRRN;
         header->proxRRN++;
     }
     
     // ATUALIZAÇÃO DE CAMPO DE CONTAGEM
-    // Como um novo nó (reaproveitado ou estendido) foi efetivamente ativado 
-    // na topologia da árvore, incrementa o contador total de nós ativos.
     header->nroNos++;
     
     return rrn; // Retorna o offset lógico pronto para a escrita da nova página
@@ -51,7 +46,6 @@ void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
     // Inicia o processamento a partir da última chave válida atualmente presente no nó.
     int i = node->nroChaves - 1;
 
-    // DESLOCAMENTO EM CASCATA
     // Percorre o nó de trás para frente enquanto encontrar chaves estritamente maiores 
     // que a nova chave a ser inserida.
     while (i >= 0 && chave < node->chaves[i]) {
@@ -68,7 +62,6 @@ void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
         i--; // Retrocede o cursor para avaliar o elemento anterior
     }
 
-    // CONFIGURAÇÃO POSICIONAL DOS ELEMENTOS
     // Após abrir o "vazio" ordenado na posição correta (i + 1), os novos dados 
     // são injetados diretamente na estrutura de forma atômica.
     node->chaves[i + 1] = chave;
@@ -76,7 +69,6 @@ void inserirNoNo(binaryNode *node, int chave, int ptr, int filhoDireita) {
     node->filhos[i + 2] = filhoDireita; // Vincula a subárvore da direita originada
     
     // ATUALIZAÇÃO DE CONTAGEM LOCAL
-    // Incrementa o contador de chaves ativas na página para refletir o novo estado do nó.
     node->nroChaves++;
 }
 
@@ -106,7 +98,6 @@ void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *head
     }
 
     // CASO DA ÁRVORE JÁ EXISTENTE (DESCIDA RECURSIVA)
-    // Executa a busca em profundidade no disco a partir da raiz atual.
     // Avalia o estouro de chaves (nroChaves > m-1) nas folhas e propaga os Splits para cima
     int houveSplit = inserirRecursivo(file, header->noRaiz, chave, byteOffsetRegistro,
                                       &chavePromovida, &ptrPromovido, &rrnDireita,
@@ -119,12 +110,11 @@ void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *head
         binaryNode novaRaiz;    
         createEmptyBinaryNode(&novaRaiz);
         
-        // Nova página é uma raiz interna com descendentes (tipoNo = 0).
-        novaRaiz.tipoNo      = 0; 
-        novaRaiz.chaves[0]   = chavePromovida; // Recebe o elemento promovido do split
+        // Nova página é uma raiz com descendentes (tipoNo = 0).
+        novaRaiz.tipoNo = 0; 
+        novaRaiz.chaves[0] = chavePromovida; // Recebe o elemento promovido do split
         novaRaiz.ponteiros[0] = ptrPromovido;   // Vincula o byte offset associado à chave promovida
         
-        // ACOPLAMENTO DE SUBÁRVORES
         // O filho da esquerda aponta para a raiz antiga. O filho da direita aponta 
         // para a nova página gerada à direita pelo split.
         novaRaiz.filhos[0]   = header->noRaiz;
@@ -137,7 +127,6 @@ void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *head
         // Escreve a nova raiz estruturada em disco
         writeBinaryNode(&novaRaiz, file, rrnNovaRaiz);
         
-        // CONSOLIDAÇÃO DO TOPO
         // Redireciona o campo noRaiz do cabeçalho para apontar para o novo nó topo.
         header -> noRaiz = rrnNovaRaiz;
         writeBinaryHeader(header, file);
@@ -146,49 +135,39 @@ void insertKey(FILE *file, int byteOffsetRegistro, int chave, binaryHeader *head
 
 
 int searchKey(FILE *file, int chave, binaryHeader *header) {
-    // INICIALIZAÇÃO DO CURSOR DE DISCO
     // A busca inicia-se obrigatoriamente no nó raiz apontado pelo campo do cabeçalho.
     int rrnAtual = header->noRaiz;
 
-    // NAVEGAÇÃO VERTICAL POR PÁGINAS
     // O laço prossegue descendo pelos níveis da árvore até encontrar o registro ou 
-    // atingir uma referência nula (-1), indicando que ultrapassou um nó folha.
+    // receber o resultado -1, indicando que ultrapassou um nó folha.
     while (rrnAtual != -1) {
         
-        // OPERAÇÃO DE I/O (LEITURA)
         // Traz a página específica de 53 bytes do disco para processamento em memória RAM.
         binaryNode no;
         readBinaryNode(&no, file, rrnAtual);
 
-        // BUSCA LINEAR IDENTRO DO NÓ 
+        // BUSCA LINEAR DENTRO DO NÓ 
         // Percorre os vetores internos da página carregada. Como as chaves estão estritamente 
-        // ordenadas (C1 < C2 < ... < Cq-1), o laço avança enquanto o elemento do nó 
-        // for menor que a chave procurada.
+        // ordenadas, o laço avança enquanto o elemento do nó for menor que a chave procurada.
         int i = 0;
         while (i < no.nroChaves && chave > no.chaves[i])
             i++;
 
         // VERIFICAÇÃO DE CORRESPONDÊNCIA
-        // Se o cursor parou em um índice válido e o conteúdo da chave for idêntico ao alvo,
-        // o registro foi localizado com sucesso.
         if (i < no.nroChaves && chave == no.chaves[i])
             // Retorna o ponteiro PR (byte offset) para o arquivo de dados correspondente.
             return no.ponteiros[i]; 
 
-        // PROCESSO DE DESCIDA (SELEÇÃO DE SUBÁRVORE)
-        // Se não houve match, o índice 'i' reflete perfeitamente a posição do ponteiro do filho (Pj)
-        // que delimita o intervalo numérico da chave, guiando a descida para o próximo nível.
+        // PROCESSO DE DESCIDA
         rrnAtual = no.filhos[i];
     }
 
-    // FRACASSO NA BUSCA (CHAVE INEXISTENTE)
-    // O cursor atingiu o valor -1, o que prova que a chave não existe na Árvore-B.
+    // CHAVE INEXISTENTE
     return -1; 
 }
 
 
 void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
-    // GESTÃO DINÂMICA DE PÁGINAS DA ÁRVORE-B
     // Executa o "Push" na pilha de páginas removidas. Salva o RRN antigo no topo
     // e atualiza o encadeamento através do campo 'proximo' do nó.
     binaryNode no;
@@ -197,15 +176,14 @@ void empilharNoRemovido(FILE *file, int rrn, binaryHeader *header) {
     no.removido = '1';
     no.proximo  = header->topo; // Nó destruído passa a apontar para o antigo topo
     header->topo = rrn;         // O topo agora passa a ser a página recém-liberada
-    header->nroNos--;           // Decrementa o censo de nós ativos na árvore-B
+    header->nroNos--;           // Decrementa o contador de nós ativos na árvore-B
     
     writeBinaryNode(&no, file, rrn);
 }
 
+
 int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, int *ptrSucc) {
     // BUSCA PELO SUCESSOR IMEDIATO
-    // Conforme especificado, a troca de uma chave em nó interno deve ser feita 
-    // com a sua sucessora imediata localizada em um nó folha (extremo esquerdo da subárvore direita).
     int rrnAtual = rrnFilhoDireita;
     binaryNode no;
 
@@ -222,21 +200,21 @@ int encontrarSucessor(FILE *file, int rrnFilhoDireita, int *chaveSucc, int *ptrS
     return rrnAtual;
 }
 
+
 void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     // REDISTRIBUIÇÃO UNIFORME DE CHAVES
-    // Carrega o pai e os dois nós envolvidos para balancear as taxas de ocupação em RAM.
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
 
     int rrnEsq, rrnDir, indiceSeparador;
 
     if (lado == 0) {
-        // Rota A: Balanceamento com irmão adjacente à direita
+        // Caso de balanceamento com irmão adjacente à direita
         rrnEsq         = pai.filhos[indiceFilho];
         rrnDir         = pai.filhos[indiceFilho + 1];
         indiceSeparador = indiceFilho;
     } else {
-        // Rota B: Balanceamento com irmão adjacente à esquerda
+        // Caso de balanceamento com irmão adjacente à esquerda
         rrnEsq         = pai.filhos[indiceFilho - 1];
         rrnDir         = pai.filhos[indiceFilho];
         indiceSeparador = indiceFilho - 1;
@@ -245,9 +223,8 @@ void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     readBinaryNode(&noEsq, file, rrnEsq);
     readBinaryNode(&noDir, file, rrnDir);
 
-    // VETORES TEMPOŔAIOS
-    // Coleta todos os elementos e a chave separadora do pai em uma estrutura
-    // para redistribuí-los de forma equilibrada entre os nós.
+
+    // Coleta todos os elementos e a chave separadora do pai para redistribuí-los entre os nós.
     int totalChaves = noEsq.nroChaves + 1 + noDir.nroChaves;
     int chaves[7], ptrs[7], filhos[8];
     int k = 0, f = 0;
@@ -305,13 +282,13 @@ void redistribuir(FILE *file, int rrnPai, int indiceFilho, int lado) {
     writeBinaryNode(&noDir, file, rrnDir);
 }
 
+
 int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
     // CONCATENAÇÃO DE PÁGINAS (FUSÃO)
-    // Chamada quando a redistribuição falha. Une duas páginas irmãs e diminui uma chave do pai.
     binaryNode pai, noEsq, noDir;
     readBinaryNode(&pai, file, rrnPai);
 
-    // Conforme a especificação, prioriza a fusão armazenando tudo no nó esquerdo.
+    // Prioriza a fusão armazenando tudo no nó esquerdo.
     int rrnEsq         = pai.filhos[indiceFilho - 1];
     int rrnDir         = pai.filhos[indiceFilho];
     int indiceSeparador = indiceFilho - 1;
@@ -319,13 +296,13 @@ int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
     readBinaryNode(&noEsq, file, rrnEsq);
     readBinaryNode(&noDir, file, rrnDir);
 
-    // A chave separadora do pai desce, servindo de elo de ligação no nó esquerdo
+    // A chave separadora do pai desce, ligando-se no nó esquerdo
     noEsq.chaves[noEsq.nroChaves]    = pai.chaves[indiceSeparador];
     noEsq.ponteiros[noEsq.nroChaves] = pai.ponteiros[indiceSeparador];
     noEsq.filhos[noEsq.nroChaves + 1] = noDir.filhos[0];
     noEsq.nroChaves++;
 
-    // Despeja todas as chaves remanescentes do nó direito no nó esquerdo
+    // Guarda todas as chaves remanescentes do nó direito no nó esquerdo
     for (int i = 0; i < noDir.nroChaves; i++) {
         noEsq.chaves[noEsq.nroChaves]    = noDir.chaves[i];
         noEsq.ponteiros[noEsq.nroChaves] = noDir.ponteiros[i];
@@ -333,7 +310,7 @@ int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
         noEsq.nroChaves++;
     }
 
-    // Contrai as chaves do nó pai, deslocando os elementos vazios para o fim
+    // Balanceia as chaves do nó pai, deslocando os elementos vazios para o fim
     for (int i = indiceSeparador; i < pai.nroChaves - 1; i++) {
         pai.chaves[i]    = pai.chaves[i + 1];
         pai.ponteiros[i] = pai.ponteiros[i + 1];
@@ -348,13 +325,12 @@ int concatenar(FILE *file, int rrnPai, int indiceFilho, binaryHeader *header) {
     writeBinaryNode(&pai,   file, rrnPai);
 
     // REMOÇÃO FÍSICA E REAPROVEITAMENTO
-    // Como a página da direita foi esvaziada e fundida, ela é liberada e seu RRN
-    // vai para a lista de removidos do cabeçalho da árvore-B.
     empilharNoRemovido(file, rrnDir, header);
 
     // Avalia e retorna se a perda da chave separadora gerou Underflow no próprio pai
     return (pai.nroChaves < (4 / 2) - 1);
 }
+
 
 void removeKey(FILE *file, int chave, binaryHeader *header) {
     if (header->noRaiz == -1)
@@ -363,25 +339,24 @@ void removeKey(FILE *file, int chave, binaryHeader *header) {
     // Dispara a cadeia recursiva de busca e correção de balanço a partir do topo
     removerRecursivo(file, header->noRaiz, -1, -1, chave, header);
 
-    // ENCOLHIMENTO VERTICAL DA ÁRVORE-B
-    // Se a antiga raiz esvaziou devido a uma fusão de nós intermediários, 
-    // a árvore diminui de altura estável e o primeiro filho herda a posição de raiz.
+    // Se a antiga raiz esvaziou devido a uma concatenação de nós intermediários, 
+    // a árvore diminui de altura e o primeiro filho herda a posição de raiz.
     binaryNode raiz;
     readBinaryNode(&raiz, file, header->noRaiz);
     if (raiz.nroChaves == 0 && raiz.filhos[0] != -1) {
         int rrnRaizVelha = header->noRaiz;
         header->noRaiz   = raiz.filhos[0]; // Nova raiz herda o nível abaixo
         
-        // Coloca a raiz esvaziada na pilha de reuso
+        // Coloca a raiz esvaziada na pilha de removidos
         empilharNoRemovido(file, rrnRaizVelha, header);
 
         // Atualiza o campo de identificação da nova página topo
         binaryNode novaRaiz;
         readBinaryNode(&novaRaiz, file, header->noRaiz);
-        novaRaiz.tipoNo = (novaRaiz.filhos[0] == -1) ? -1 : 0; // Vira folha-raiz ou raiz-interna
+        novaRaiz.tipoNo = (novaRaiz.filhos[0] == -1) ? -1 : 0; // Vira folha ou raiz
         writeBinaryNode(&novaRaiz, file, header->noRaiz);
     }
     
-    // Salva os campos com valores atualizados (novas contagens, topos de pilha e nós) no offset 0
+    // Salva os campos com valores atualizados
     writeBinaryHeader(header, file);
 }

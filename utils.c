@@ -3,14 +3,9 @@
 #include "header.h"
 
 void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conteudo){
-    // INICIALIZAÇÃO DE CRITÉRIOS (Mapeamento String -> Flag/Valor)
-    // Uma escada de if/else if verifica estritamente os nomes de colunas definidos
-    // pela especificação do projeto, ignorando entradas inválidas.
+    // INICIALIZAÇÃO DE CRITÉRIOS
 
     // CAMPOS DE TAMANHO FIXO (INTEIROS)
-    // A lógica condicional em linha intercepta o termo "NULO" exigido
-    // pelo RunCodes para representar buscas por campos sem valor cadastrado, convertendo-o
-    // fisicamente para o inteiro sentinela -1.
 
     if (strcmp(campo, "codEstacao") == 0){
         criterios->flag_codEstacao = 1;
@@ -38,9 +33,6 @@ void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conte
     }
 
     // CAMPOS DE TAMANHO VARIÁVEL (STRINGS)
-    // O valor em texto puro (já sem aspas duplas da leitura prévia) é copiado 
-    // diretamente para o buffer interno da struct de busca. Em pesquisas por strings 
-    // nulas, o programa lê explicitamente "NULO" para o campo.
 
     else if (strcmp(campo, "nomeEstacao") == 0){
         criterios->flag_nomeEstacao = 1;
@@ -53,24 +45,18 @@ void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conte
 }
 
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual){
-    // FILTRO DE VALIDADE
     // Registros marcados como logicamente removidos ('1') são 
     // imediatamente descartados de qualquer resultado de busca.
     if (regAtual->removido == '1')
         return 0; 
 
     // AVALIAÇÃO DOS CRITÉRIOS
-    // A validação ocorre em cascata. Se a flag de um campo está ativa (1), 
-    // o valor armazenado no registro físico é comparado com o valor alvo da busca.
-    // Qualquer divergência retorna um código de falha (0).
 
     // Validação de Chave Primária (Única)
     if (criterios->flag_codEstacao == 1 && regAtual->codEstacao != criterios->regBusca.codEstacao)
         return 0;
 
     // Validação de String Variável 
-    // O uso de strcmp garante a equivalência exata do nome da estação,
-    // incluindo correspondências nulas quando aplicável.
     if (criterios->flag_nomeEstacao == 1 && strcmp(regAtual->nomeEstacao, criterios->regBusca.nomeEstacao) != 0)
         return 0;
 
@@ -98,9 +84,6 @@ int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual){
     if (criterios->flag_codEstIntegra == 1 && regAtual->codEstIntegra != criterios->regBusca.codEstIntegra)
         return 0;
 
-    // SUCESSO ABSOLUTO
-    // O registro sobreviveu à cascata de ifs, o que prova matematicamente que ele
-    // satisfaz todas as flags que estavam ativadas na struct de critérios.
     return 1; 
 }
 

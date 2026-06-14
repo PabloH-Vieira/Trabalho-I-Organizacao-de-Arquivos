@@ -6,6 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* IMPLEMENTAÇÃO DE INDEXAÇÃO DE REGISTROS EM ESTRUTURA DE ÁRVORE BINÁRIA A PARTIR DE UM ARQUIVO DE DADOS
+    Projeto desenvolvido por:
+    Guilherme Pego dos Santos - 15575570
+    Pablo Henrique Almeida Vieira - 16895429
+*/
+
 int main(void) {
     int funcionalidade = 0;
     scanf("%d", &funcionalidade);

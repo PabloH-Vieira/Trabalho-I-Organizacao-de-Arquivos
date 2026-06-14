@@ -145,24 +145,20 @@ void writeRegistros(Registro *registro, FILE *saida, Header *cabecalho){
 }
 
 int readRegistros(Registro *registro, FILE *file){
-    // AVALIAÇÃO DE STATUS
     // Percorre o 1º byte do registro para avaliar a sua validade.
     // O fread garante a detecção correta do Fim de Arquivo (EOF).
     if (fread(&registro->removido, sizeof(char), 1, file) != 1)
         return 0; 
 
-    // TRATAMENTO DE REGISTRO DESCARTADO
     // O status '1' indica remoção lógica. 
-    // Otimização de I/O: Ao invés de carregar o lixo na RAM, dá um salto físico (fseek)
-    // consumindo os 79 bytes restantes, posicionado o cursor no início do próximo registro.
+    // Dá um salto físico (fseek), ignorando os 79 bytes restantes, posicionando o cursor no início do próximo registro.
     if (registro->removido == '1') {
         fseek(file, 79, SEEK_CUR); 
         return 2; // Código para indicar que ocorreu um salto
     }
 
     // CARREGAMENTO SEQUENCIAL
-    // A especificação define que registros ocupam sempre 80 bytes no disco.
-    // Carrega os 79 bytes restantes de uma só vez para a RAM, engolindo automaticamente todo o lixo ('$').
+    // Carrega os 79 bytes restantes de uma só vez para a RAM
     char bufferRegistro[79]; 
     if (fread(bufferRegistro, sizeof(char), 79, file) != 79)
         return 0; 
@@ -170,8 +166,6 @@ int readRegistros(Registro *registro, FILE *file){
     int offset = 0; // Cursor lógico de navegação dentro do buffer da RAM
 
     // DESEMPACOTAMENTO DOS CAMPOS DE TAMANHO FIXO
-    // O uso de memcpy extrai os bytes na sequência física do arquivo.
-    
     memcpy(&registro->proximo, bufferRegistro + offset, sizeof(int));
     offset += sizeof(int);
 
@@ -195,7 +189,6 @@ int readRegistros(Registro *registro, FILE *file){
 
     // DESEMPACOTAMENTO DAS STRINGS (CAMPOS VARIÁVEIS)
     
-    // Alinhamento de segurança: Garante que a extração variável inicie no byte exato (29 total - 1 do removido).
     offset = 28;
     
     // NOME DA ESTAÇÃO
@@ -203,7 +196,6 @@ int readRegistros(Registro *registro, FILE *file){
     offset += sizeof(int);
     
     // DEFESA CONTRA BUFFER OVERFLOW
-    // Protege a memória contra valores corrompidos no indicador de tamanho.
     if (registro->tamNomeEstacao < 0 || registro->tamNomeEstacao > 28){
         registro->tamNomeEstacao = 0;
         registro->nomeEstacao[0] = '\0';
@@ -230,19 +222,12 @@ int readRegistros(Registro *registro, FILE *file){
         registro->nomeLinha[registro->tamNomeLinha] = '\0';
     }
 
-    return 1; // Leitura estritamente dentro dos padrões, retorno de sucesso
+    return 1; // Retorno de sucesso
 }
 
 void printRegistros(Registro *registro){
     // FILTRO DE EXIBIÇÃO PARA REGISTROS ATIVOS
-    // A especificação proíbe terminantemente a exibição de registros que estejam 
-    // marcados como logicamente removidos no disco.
     if (registro->removido == '0'){
-        
-        // FORMATAÇÃO SEQUENCIAL EM LINHA ÚNICA
-        // Todos os campos de um registro válido devem ser impressos em uma única linha, 
-        // separados por um espaço em branco. A ordem das instruções obedece 
-        // ao layout exigido de exibição.
         
         // 1. CÓDIGO DA ESTAÇÃO
         // O valor numérico -1 na struct de memória indica ausência de dados, 
@@ -304,19 +289,14 @@ void preencherNovoRegistro(Registro *novoReg){
     char bufferAux[100];
     
     // LEITURA DE CHAVE PRIMÁRIA
-    // O código da estação é o único campo estritamente obrigatório (não aceita nulos).
     scanf("%d", &novoReg->codEstacao);
 
     // PROCESSAMENTO DE STRINGS (TAMANHO VARIÁVEL)
-    // A função ScanQuoteString remove as aspas duplas exigidas pela especificação 
-    // e isola a string real, permitindo calcular o tamanho exato.
     ScanQuoteString(bufferAux);
     novoReg->tamNomeEstacao = strlen(bufferAux);
     memcpy(novoReg->nomeEstacao, bufferAux, novoReg->tamNomeEstacao);
 
-    // MAPEAMENTO DE INTEIROS E TRATAMENTO DE 'NULO'
-    // Lê o buffer como string primeiro para interceptar a palavra-chave "NULO" exigida
-    // na entrada da funcionalidade [5] e converte adequadamente para -1.
+    // MAPEAMENTO DE INTEIROS E TRATAMENTO DE 'NULO' PARA ESCREVER -1
     scanf("%s", bufferAux);
     if (strcmp(bufferAux, "NULO") == 0)
         novoReg->codLinha = -1;
@@ -356,21 +336,15 @@ void preencherNovoRegistro(Registro *novoReg){
     else
         novoReg->codEstIntegra = atoi(bufferAux);
 
-    // INICIALIZAÇÃO DOS CAMPOS DE METADADOS DO REGISTRO
-    // Como se trata de uma inserção nativa, o registro nasce como válido ('0') e 
-    // desvinculado da pilha de reaproveitamento de espaço (-1).
+    // INICIALIZAÇÃO DOS CAMPOS DA LÓGICA DE PILHA DE REAPROVEITAMENTO DO REGISTRO
     novoReg->removido = '0';
     novoReg->proximo = -1;
 }
 
 void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpdate[][100], int p){
-    // PROCESSAMENTO DAS ATUALIZAÇÕES
-    // Itera sobre o número de atualizações 'p' requisitadas para este registro específico.
     for (int k = 0; k < p; k++){
         
         // ATUALIZAÇÃO DE CAMPOS FIXOS (Chaves e Numéricos)
-        // A especificação define que valores nulos informados pelo usuário ("NULO") 
-        // devem substituir o conteúdo atual pelo inteiro -1.
         
         if (strcmp(camposUpdate[k], "codEstacao") == 0)
             registro->codEstacao = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
@@ -391,8 +365,6 @@ void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpd
             registro->codEstIntegra = (strcmp(valoresUpdate[k], "NULO") == 0) ? -1 : atoi(valoresUpdate[k]);
         
         // ATUALIZAÇÃO DE CAMPOS VARIÁVEIS (Strings)
-        // A especificação define que campos variáveis marcados como "NULO" não devem 
-        // ocupar espaço além do indicador de tamanho, que deve receber 0.
         
         else if (strcmp(camposUpdate[k], "nomeEstacao") == 0){
             if (strcmp(valoresUpdate[k], "NULO") == 0)

@@ -43,36 +43,29 @@ typedef struct{
     int numParesEstacao;    // Variável para contar o número de pares de estações únicas
 }Estacoes;
 
-/**
- * @brief Mapeia e ativa um critério individual de busca.
+/** Função que mapeia e ativa um critério individual de busca.
  *
  * Analisa o nome de um campo fornecido via input do usuário e o seu respectivo valor alvo 
  * em formato de texto. Ativa a flag correspondente na struct CriteriosBusca e converte 
- * o texto para o tipo numérico adequado quando necessário. Implementa rigorosamente a 
- * restrição de nulidade: buscas pelo termo literal "NULO" resultam no armazenamento do 
- * valor sentinela -1 para os campos de tamanho fixo.
- *
- * @param criterios Ponteiro para a struct que acumula os parâmetros da busca atual.
- * @param campo String contendo o nome exato da coluna (ex: "codEstacao").
- * @param conteudo String contendo o valor alvo da busca ou a palavra-chave "NULO".
+ * o texto para o tipo numérico adequado quando necessário. Implementa a restrição sobre valor 
+ * 'NULO': buscas pelo termo resultam no armazenamento do valor -1 para os campos de tamanho fixo.
+ * Recebe como parâmetros: criterios (ponteiro para a struct que acumula os parâmetros da busca atual),
+ * campo (string contendo o nome exato da coluna) e conteudo (string contendo o valor alvo da busca).
  */
 void preencherCriteriosBusca(CriteriosBusca *criterios, char* campo, char* conteudo);
 
-/**
- * @brief Função avaliadora: Verifica se um registro atende aos filtros da cláusula WHERE.
+/** Função que erifica se um registro atende aos filtros da cláusula WHERE.
  *
  * Funciona como um avaliador de igualdade lógica para pesquisas com múltiplos critérios. Recebe os parâmetros 
- * ativados pelo usuário (na struct CriteriosBusca) e os compara com os dados reais de um registro 
- * recém-lido do disco. Implementa uma lógica de comparação, onde o registro 
- * só é aprovado se satisfizer simultaneamente todos os campos solicitados na busca, já que a 
- * pesquisa deve ser feita considerando um ou mais campos. 
+ * ativados pelo usuário (na struct CriteriosBusca) e os compara com os dados reais de um registro. 
+ * Implementa uma lógica de comparação, onde o registro  só é aprovado se satisfizer simultaneamente todos os 
+ * campos solicitados na busca, já que a pesquisa deve ser feita considerando um ou mais campos. 
  * Possui uma trava de segurança estrutural de nível zero: registros marcados como 
  * logicamente removidos são reprovados instantaneamente, não devendo ser exibidos 
  * ou contabilizados.
- *
- * @param criterios Ponteiro para a struct contendo os parâmetros da busca.
- * @param regAtual Ponteiro para o registro extraído do disco que será testado.
- * @return 1 (Verdadeiro) se o registro atende a TODOS os critérios ativos; 0 (Falso) caso contrário.
+ * Recebe como parâmetros: criterios (ponteiro para a struct contendo os parâmetros da busca) e
+ * regAtual (ponteiro para o registro que será testado.
+ * Retorna 1 se o registro atende a TODOS os critérios ativos; 0 caso contrário.
  */
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual);
 
