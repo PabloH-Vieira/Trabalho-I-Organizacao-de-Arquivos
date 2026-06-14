@@ -41,60 +41,44 @@ void writeBinaryNode(binaryNode *node, FILE *file, int rrn);
 void createEmptyBinaryNode(binaryNode *newNode);
 
 /**
- * @brief Mecanismo recursivo de descida e partição: Insere uma chave navegando pelas páginas em disco.
+ * Função recursiva de descida: Insere uma chave navegando pelas páginas em disco.
  *
  * Realiza a busca em profundidade pelo nó folha apropriado para a inserção. Na subida da 
- * recursão, atua como o controlador de transição de estados da árvore, tratando de forma 
- * autônoma dois cenários lógicos pós-retorno:
- * 1. Estabilização (NO_PROMOTION): O nó possui espaço livre (nroChaves < 3) e insere o elemento ordenando as chaves.
- * 2. Propagação (PROMOTION): O nó sofre estouro de capacidade (Overflow), disparando 
- * um Split e promovendo o elemento médio para a página pai.
- *
- * @param file Ponteiro do tipo FILE correspondente ao arquivo de índice binário Árvore-B.
- * @param rrnAtual RRN do nó atual avaliado na recursão.
- * @param chave O valor numérico 'codEstacao' que está sendo inserido.
- * @param ptr O ponteiro de dados (byte offset) correspondente à chave no arquivo de dados.
- * @param promotionKey Ponteiro para capturar a chave promovida para o andar superior em caso de Split.
- * @param promotionPtr Ponteiro para capturar o byte offset associado à chave promovida.
- * @param promotionRightChild Ponteiro para capturar o RRN da nova subárvore à direita gerada pelo Split.
- * @param header Ponteiro para a estrutura de cabeçalho da Árvore-B em memória RAM.
- * @return int Códigos de estado contratuais: PROMOTION (houve split), NO_PROMOTION (estabilizou), ou ERROR (chave duplicada).
+ * recursão, lida com dois cenários possíveis:
+ * 1. NO PROMOTION: O nó possui espaço livre e insere o elemento ordenando as chaves.
+ * 2. PROMOTION: O nó sofre Overflow, realizando um Split e promovendo o elemento do meio para a página pai.
+ * Recebe como parâmetros: file (ponteiro do tipo FILE para arquivo de índice binário), rrnAtual (RRN do nó atual na recursão),
+ * chave (valor numérico 'codEstacao' que está sendo inserido), ptr (byte offset da chave no arquivo de dados),
+ * promotionKey (ponteiro para guardar a chave promovida em caso de Split), promotionPtr (ponteiro para guardar 
+ * o byte offset da chave promovida), promotionRightChild (ponteiro para guardar o RRN da 
+ * nova subárvore à direita gerada pelo Split), header (ponteiro para o cabeçalho da Árvore-B).
+ * Retorna PROMOTION (houve split), NO_PROMOTION, ou ERROR (chave duplicada).
  */
 int inserirRecursivo(FILE *file, int rrnAtual, int chave, int ptr, int *chavePromovida, int *ptrPromovido, 
                             int *rrnDireita, binaryHeader *header);
 
 
 /**
- * @brief Função auxiliar de Split: Trata o overflow de chaves dividindo um nó cheio.
+ * Função auxiliar Split: Trata o overflow de chaves dividindo um nó cheio.
  *
- * Implementa a rotina de particionamento de um nó que atingiu o limite de chaves (Overflow).
- * Utiliza vetores auxiliares em RAM para acomodar temporariamente as 4 chaves e 5 ponteiros para nós auxiliares. 
- * Conforme as especificações de distribuição para uma Árvore-B de ordem m=4, a partição é realizada 
- * de forma a garantir que a chave promovida distribua o mais uniformemente possível os elementos:
+ * Implementa a rotina de split de um nó com Overflow. Utiliza vetores auxiliares em RAM para acomodar
+ * temporariamente as 4 chaves e 5 ponteiros para nós auxiliares. 
  * - O nó original (à esquerda) retém as 2 primeiras chaves.
  * - A 3ª chave (elemento médio) é separada e enviada por referência para ser promovida ao nó pai.
  * - A 4ª chave é transferida para uma nova página criada (sempre à direita).
- *
- * Limpa explicitamente quaisquer resíduos físicos ou dados fantasmas com o valor -1 nas posições vazias 
- * das páginas para evitar inconsistências no arquivo binário de índices.
- *
- * @param file Ponteiro do tipo FILE correspondente ao arquivo de índice binário Árvore-B.
- * @param p_oldpage Ponteiro para a struct do nó cheio que será dividido.
- * @param rrn_oldpage RRN físico correspondente à página cheia no disco.
- * @param key O valor numérico 'codEstacao' transbordado vindo do nível inferior.
- * @param ponteiro O ponteiro de dados (byte offset) associado à chave transbordada.
- * @param r_child O RRN da subárvore à direita gerada pelo split anterior (se aplicável).
- * @param promo_key Ponteiro para capturar a chave que será enviada para o nó pai.
- * @param promo_ponteiro Ponteiro para capturar o byte offset associado à chave promovida.
- * @param promo_r_child Ponteiro para capturar o RRN alocado para a nova página da direita.
- * @param header Ponteiro para a estrutura de cabeçalho da Árvore-B em memória RAM.
+ * Recebe como parâmetros: file (ponteiro do tipo FILE para arquivo de índice binário), 
+ * p_oldpage (ponteiro para onó cheio que será dividido), rrn_oldpage (RRN da página cheia),
+ * key (valor numérico 'codEstacao' que não coube no nó), ponteiro (byte offset da chave que não coube),
+ * r_child (RRN da subárvore à direita gerada pelo split anterior), promo_key (ponteiro para guardar a chave 
+ * que será promovida), promo_ponteiro (ponteiro para guardar o byte offset da chave promovida),
+ * promo_r_child (ponteiro para guardar o RRN alocado para a nova página da direita), header (ponteiro o cabeçalho da Árvore-B).
  */
 void splitNode(FILE *file, binaryNode *noEsq, int rrnEsq, int chaveNova, int ptrNova, int filhoNovoDireita,
                       int *chavePromovida, int *ptrPromovido, int *rrnNovoDireita, binaryHeader *header);
 
 /**
- * @brief Algoritmo recursivo de remoção: Navega pelas páginas tratando Underflows na subida.
- * @return int Retorna 1 se o nó atual terminou com menos chaves do que o mínimo permitido; 0 caso estável.
+ * Função recursiva de remoção: Navega pelas páginas tratando Underflows na subida.
+ * etorna 1 se o nó atual terminou com menos chaves do que o mínimo permitido; 0 caso estável.
  */
 int removerRecursivo(FILE *file, int rrnAtual, int rrnPai, int indiceNoPai, int chave, binaryHeader *header);
 
