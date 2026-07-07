@@ -92,4 +92,7 @@ void preencherNovoRegistro(Registro *novoReg);
  */
 void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpdate[][100], int p);
 
+// Função que imprime os campos do registro após a função de junção
+void printRegistroJuncao(Registro *r1, Registro *r2);
+
 #endif

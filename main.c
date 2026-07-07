@@ -119,11 +119,17 @@ int main(void) {
             scanf("%s", campoCriterio);
             sortBinary(nomeArquivoBin, campoCriterio, nomeNovoArquivo);
             break;
-            
-        case 14:
-        //
-            break;
 
+        case 14:
+        // Faz o merge entre dois arquivos binários ordenados em relação a campos definidos pelo usuário e imprime o registro ao final.
+            scanf("%s", nomeArquivoBin);
+            char campoCriterio1[50];
+            scanf("%s", campoCriterio1);
+            char nomeArquivoBin2[100];
+            scanf("%s", nomeArquivoBin2);
+            char campoCriterio2[50];
+            juncaoOrdenacao(nomeArquivoBin, campoCriterio1, nomeArquivoBin2, campoCriterio2);
+            break;
     }
     return 0;
 }

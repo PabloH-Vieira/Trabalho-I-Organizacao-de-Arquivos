@@ -387,3 +387,24 @@ void updateRegistro(Registro *registro, char camposUpdate[][50], char valoresUpd
         }
     }
 }
+
+void printRegistroJuncao(Registro *r1, Registro *r2){
+    // Se o tamanho das strings for 0, imprime "NULO"
+    char strNomeEstacao[105] = "NULO";
+    if (r1->tamNomeEstacao > 0) strcpy(strNomeEstacao, r1->nomeEstacao);
+    
+    char strNomeLinha[105] = "NULO";
+    if (r1->tamNomeLinha > 0) strcpy(strNomeLinha, r1->nomeLinha);
+    
+    // O nome da próxima estação vem do registro 2 (r2)
+    char strNomeProxEstacao[105] = "NULO";
+    if (r2->tamNomeEstacao > 0) strcpy(strNomeProxEstacao, r2->nomeEstacao);
+
+    printf("%d %s %s %d %s\n", 
+        r1->codEstacao, 
+        strNomeEstacao, 
+        strNomeLinha, 
+        r1->codProxEstacao, 
+        strNomeProxEstacao
+    );
+}
