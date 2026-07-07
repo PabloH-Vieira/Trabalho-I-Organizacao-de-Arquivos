@@ -2,94 +2,90 @@
 #include "register.h"
 #include "header.h"
 
+
 void preencherCriteriosBusca(CriteriosBusca *criterios, char *campo, char *conteudo){
-    // Verifica se o campo é o de código da estação. Se sim, ativa a flag e atribui o valor a ser buscado
+    // INICIALIZAÇÃO DE CRITÉRIOS
+
+    // CAMPOS DE TAMANHO FIXO (INTEIROS)
+
     if (strcmp(campo, "codEstacao") == 0){
         criterios->flag_codEstacao = 1;
         criterios->regBusca.codEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
-    // Verifica se o campo é o de nome da estação. Se sim, ativa a flag e atribui o valor a ser buscado
-    else if (strcmp(campo, "nomeEstacao") == 0){
-        criterios->flag_nomeEstacao = 1;
-        strcpy(criterios->regBusca.nomeEstacao, conteudo);
-    }
-    // Verifica se o campo é o de código da linha. Se sim, ativa a flag e atribui o valor a ser buscado
     else if (strcmp(campo, "codLinha") == 0){
         criterios->flag_codLinha = 1;
         criterios->regBusca.codLinha = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
-    // Verifica se o campo é o de nome da linha. Se sim, ativa a flag e atribui o valor a ser buscado
-    else if (strcmp(campo, "nomeLinha") == 0){
-        criterios->flag_nomeLinha = 1;
-        strcpy(criterios->regBusca.nomeLinha, conteudo);
-    }
-    // Verifica se o campo é o de código da próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
     else if (strcmp(campo, "codProxEstacao") == 0){
         criterios->flag_codProxEstacao = 1;
         criterios->regBusca.codProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
-    // Verifica se o campo é o de distância para a próxima estação. Se sim, ativa a flag e atribui o valor a ser buscado
     else if (strcmp(campo, "distProxEstacao") == 0){
         criterios->flag_distProxEstacao = 1;
         criterios->regBusca.distProxEstacao = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
-    // Verifica se o campo é o de código da linha de integração. Se sim, ativa a flag e atribui o valor a ser buscado
     else if (strcmp(campo, "codLinhaIntegra") == 0){
         criterios->flag_codLinhaIntegra = 1;
         criterios->regBusca.codLinhaIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
-    // Verifica se o campo é o de código da estação de integração. Se sim, ativa a flag e atribui o valor a ser buscado
     else if (strcmp(campo, "codEstIntegra") == 0){
         criterios->flag_codEstIntegra = 1;
         criterios->regBusca.codEstIntegra = (strcmp(conteudo, "NULO") == 0) ? -1 : atoi(conteudo);
     }
+
+    // CAMPOS DE TAMANHO VARIÁVEL (STRINGS)
+
+    else if (strcmp(campo, "nomeEstacao") == 0){
+        criterios->flag_nomeEstacao = 1;
+        strcpy(criterios->regBusca.nomeEstacao, conteudo);
+    }
+    else if (strcmp(campo, "nomeLinha") == 0){
+        criterios->flag_nomeLinha = 1;
+        strcpy(criterios->regBusca.nomeLinha, conteudo);
+    }
 }
 
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual){
+    // Registros marcados como logicamente removidos ('1') são 
+    // imediatamente descartados de qualquer resultado de busca.
     if (regAtual->removido == '1')
-        return 0; // Registro foi removido logicamente, não atende aos critérios de busca
+        return 0; 
 
-    // Verifica se o campo de código da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // AVALIAÇÃO DOS CRITÉRIOS
+
+    // Validação de Chave Primária (Única)
     if (criterios->flag_codEstacao == 1 && regAtual->codEstacao != criterios->regBusca.codEstacao)
         return 0;
 
-    // Verifica se o campo de nome da estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação de String Variável 
     if (criterios->flag_nomeEstacao == 1 && strcmp(regAtual->nomeEstacao, criterios->regBusca.nomeEstacao) != 0)
         return 0;
 
-    // Verifica se o campo de código da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação de Chave Secundária (Código da Linha)
     if (criterios->flag_codLinha == 1 && regAtual->codLinha != criterios->regBusca.codLinha)
         return 0;
 
-    // Verifica se o campo de nome da linha é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação de String Variável (Nome da Linha)
     if (criterios->flag_nomeLinha == 1 && strcmp(regAtual->nomeLinha, criterios->regBusca.nomeLinha) != 0)
         return 0;
 
-    // Verifica se o campo de código da próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação Numérica: Código da Próxima Estação
     if (criterios->flag_codProxEstacao == 1 && regAtual->codProxEstacao != criterios->regBusca.codProxEstacao)
         return 0;
 
-    // Verifica se o campo de distância para a próxima estação é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação Numérica: Distância (em metros/km)
     if (criterios->flag_distProxEstacao == 1 && regAtual->distProxEstacao != criterios->regBusca.distProxEstacao)
         return 0;
 
-    // Verifica se o campo de código da linha de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação Numérica: Linha de Integração
     if (criterios->flag_codLinhaIntegra == 1 && regAtual->codLinhaIntegra != criterios->regBusca.codLinhaIntegra)
         return 0;
 
-    // Verifica se o campo de código da estação de integração é um critério de busca ativo e se o valor do registro atual é diferente do valor buscado. 
-    // Se sim, o registro não atende aos critérios de busca
+    // Validação Numérica: Estação de Integração
     if (criterios->flag_codEstIntegra == 1 && regAtual->codEstIntegra != criterios->regBusca.codEstIntegra)
         return 0;
 
-    return 1; // O registro atende a todos os critérios de busca
+    return 1; 
 }
 
 void lerCriteriosUsuario(CriteriosBusca *criterios, int quantidade) {
@@ -225,3 +221,4 @@ void ScanQuoteString(char *str){
         strcpy(str, "");
     }
 }
+

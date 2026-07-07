@@ -8,8 +8,18 @@
 #include <string.h>
 #include <ctype.h>
 
+/**
+ * @struct CriteriosBusca
+ * @brief Estrutura rastreadora para a cláusula WHERE (Busca Multicritério).
+ *
+ * permite buscas combinadas usando a lógica de flags e valores 
+ * sobre um ou mais campos. Cada coluna do registro possui 
+ * uma flag inteira (0 para ignorar na busca, 1 para avaliar). Os dados alvo da 
+ * pesquisa são armazenados na struct interna regBusca. Isso otimiza o processamento, 
+ * garantindo que a varredura compare apenas os bytes solicitados pelo usuário.
+ */
 typedef struct{
-    //Flags para indicar quais campos são critérios de busca
+    // FLAGS DE ATIVAÇÃO
     int flag_codEstacao;
     int flag_nomeEstacao;
     int flag_codLinha;
@@ -19,9 +29,11 @@ typedef struct{
     int flag_codLinhaIntegra;
     int flag_codEstIntegra;
 
-    //Valores dos campos a serem buscados, caso o campo seja um critério de busca
+    // CARGA DOS PARAMETROS DE BUSCA
+    // Reaproveita a estrutura Registro para armazenar os dados que serão comparados.
     Registro regBusca;
-}CriteriosBusca;
+} CriteriosBusca;
+
 
 //Struct para guardar o nome das estações e os pares das estações
 typedef struct{
@@ -31,10 +43,30 @@ typedef struct{
     int numParesEstacao;    // Variável para contar o número de pares de estações únicas
 }Estacoes;
 
-// Função que preenche a struct CriteriosBusca com os critérios de busca fornecidos pelo usuário
+/** Função que mapeia e ativa um critério individual de busca.
+ *
+ * Analisa o nome de um campo fornecido via input do usuário e o seu respectivo valor alvo 
+ * em formato de texto. Ativa a flag correspondente na struct CriteriosBusca e converte 
+ * o texto para o tipo numérico adequado quando necessário. Implementa a restrição sobre valor 
+ * 'NULO': buscas pelo termo resultam no armazenamento do valor -1 para os campos de tamanho fixo.
+ * Recebe como parâmetros: criterios (ponteiro para a struct que acumula os parâmetros da busca atual),
+ * campo (string contendo o nome exato da coluna) e conteudo (string contendo o valor alvo da busca).
+ */
 void preencherCriteriosBusca(CriteriosBusca *criterios, char* campo, char* conteudo);
 
-// Função que verifica se um registro atende aos critérios de busca fornecidos pelo usuário
+/** Função que erifica se um registro atende aos filtros da cláusula WHERE.
+ *
+ * Funciona como um avaliador de igualdade lógica para pesquisas com múltiplos critérios. Recebe os parâmetros 
+ * ativados pelo usuário (na struct CriteriosBusca) e os compara com os dados reais de um registro. 
+ * Implementa uma lógica de comparação, onde o registro  só é aprovado se satisfizer simultaneamente todos os 
+ * campos solicitados na busca, já que a pesquisa deve ser feita considerando um ou mais campos. 
+ * Possui uma trava de segurança estrutural de nível zero: registros marcados como 
+ * logicamente removidos são reprovados instantaneamente, não devendo ser exibidos 
+ * ou contabilizados.
+ * Recebe como parâmetros: criterios (ponteiro para a struct contendo os parâmetros da busca) e
+ * regAtual (ponteiro para o registro que será testado.
+ * Retorna 1 se o registro atende a TODOS os critérios ativos; 0 caso contrário.
+ */
 int checagemCriteriosBusca(CriteriosBusca *criterios, Registro *regAtual);
 
 // Função que lê os critérios de busca fornecidos pelo usuário
