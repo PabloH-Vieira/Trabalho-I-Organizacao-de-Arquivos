@@ -128,23 +128,4 @@ void Update(char *FileName, int nroAtualizacoes);
  */
 void sortBinary(char *inputFileName, char *campoOrdenacao, char *outputFileName);
 
-/**
- * @brief Implementa a Funcionalidade [14] (Sort-Merge Join): Junção de dois arquivos de dados.
- *
- * Realiza o cruzamento de dados (JOIN) entre dois arquivos baseando-se na condição de igualdade
- * entre estacao1.codProxEstacao e estacao2.codEstacao.
- * O algoritmo executa a preparação prévia ordenando ambos os arquivos (via Funcionalidade [13]) 
- * e gravando arquivos temporários. Em seguida, lê os arquivos ordenados simultaneamente 
- * em tempo O(N + M). Após o cruzamento e exibição dos dados, os arquivos temporários são deletados.
- *
- * @pre A função sortDataFile e readRegistros devem estar implementadas. 
- * @post Os arquivos temporários ordenados são criados no disco e removidos após o uso.
- *
- * @param arq1 Nome do primeiro arquivo de dados (ex: estacao1.bin).
- * @param campo1 Nome do campo de junção do arq1 ("codProxEstacao").
- * @param arq2 Nome do segundo arquivo de dados (ex: estacao2.bin).
- * @param campo2 Nome do campo de junção do arq2 ("codEstacao").
- */
-void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2);
-
 #endif

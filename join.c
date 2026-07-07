@@ -37,7 +37,7 @@ void juncaoLoopAninhado(char *arq1, char *campo1, char *arq2, char *campo2) {
     }
 
     Registro r1, r2;
-    int encontrouMatch = 0;
+    int encontrou = 0;
 
     // loop externo — percorre arquivo 1
     fseek(f1, 17, SEEK_SET);
@@ -53,13 +53,13 @@ void juncaoLoopAninhado(char *arq1, char *campo1, char *arq2, char *campo2) {
 
             if (r1.codProxEstacao == r2.codEstacao) {
                 printRegistroJuncao(&r1, &r2);
-                encontrouMatch = 1;
+                encontrou = 1;
                 break; // codEstacao é chave primária, só existe um match
             }
         }
     }
 
-    if (!encontrouMatch)
+    if (!encontrou)
         printf("Registro inexistente.\n");
 
     fclose(f1);
@@ -142,4 +142,95 @@ void juncaoLoopUnico(char *arq1, char *campo1, char *arq2, char *campo2, char *i
     fclose(f1);
     fclose(f2);
     fclose(indice);
+}
+
+/*
+ * [14] Junção por ordenação-intercalação (Sort-Merge Join).
+ * Ordena ambos os arquivos por suas respectivas chaves de junção e realiza
+ * uma varredura sincronizada para juntar os registros que satisfaçam
+ * a condição de igualdade entre os campos.
+ */
+void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2) {
+    // Utiliza a funcionalidade [13] para criar arquivos temporários com os registros ordenados
+    char tempArq1[] = "temp_sorted1.bin";
+    char tempArq2[] = "temp_sorted2.bin";
+    
+    sortBinary(arq1, campo1, tempArq1); // Ordena arquivo 1
+    sortBinary(arq2, campo2, tempArq2); // Ordena arquivo 2
+
+    // Abertura dos arquivos temporários ordenados
+    FILE *f1 = fopen(tempArq1, "rb");
+    FILE *f2 = fopen(tempArq2, "rb");
+
+    if (f1 == NULL || f2 == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        if (f1) fclose(f1);
+        if (f2) fclose(f2);
+        return;
+    }
+
+    // Validação dos cabeçalhos
+    Header h1, h2;
+    readHeader(&h1, f1);
+    readHeader(&h2, f2);
+
+    if (h1.status == '0' || h2.status == '0') {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(f1);
+        fclose(f2);
+        return;
+    }
+
+    Registro r1, r2;
+    
+    // Posiciona ponteiros após o cabeçalho para iniciar varredura
+    fseek(f1, 17, SEEK_SET);
+    fseek(f2, 17, SEEK_SET);
+
+    int existeR1 = readRegistros(&r1, f1);
+    int existeR2 = readRegistros(&r2, f2);
+    int encontrou = 0;
+
+    // Enquanto não atingir o final de nenhum dos arquivos
+    while (existeR1 && existeR2) {
+        // Ignora valores NULOS
+        if (r1.codProxEstacao == -1){
+            existeR1 = readRegistros(&r1, f1); 
+            continue;
+        }
+        if (r2.codEstacao == -1){
+            existeR2 = readRegistros(&r2, f2);
+            continue;
+        }
+
+        // COMPARAÇÃO DAS CHAVES
+        if (r1.codProxEstacao == r2.codEstacao) {
+            // Match das chaves
+            encontrou = 1;
+            printRegistroJuncao(&r1, &r2);
+
+            // Como a codEstacao (r2) é Chave Primária (única), múltiplas estações (r1) 
+            // podem apontar para ela (Relação N:1). Apenas R1 avança.
+            existeR1 = readRegistros(&r1, f1);
+            
+        } else if (r1.codProxEstacao < r2.codEstacao) {
+            // Se a chave do R1 ficou para trás, avança R1 para tentar alcançar R2
+            existeR1 = readRegistros(&r1, f1);
+            
+        } else {
+            // Se a chave do R2 ficou para trás, avança R2 para tentar alcançar R1
+            existeR2 = readRegistros(&r2, f2);
+        }
+    }
+
+    if (!encontrou) {
+        printf("Registro inexistente.\n");
+    }
+
+    fclose(f1);
+    fclose(f2);
+
+    // Apaga os arquivos temporários gravados no disco
+    remove(tempArq1);
+    remove(tempArq2);
 }
