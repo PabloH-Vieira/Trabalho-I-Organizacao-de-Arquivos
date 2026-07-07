@@ -102,6 +102,28 @@ int main(void) {
             deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
             break;
 
+        case 11:
+        //
+            break;
+
+        case 12:
+        //
+            break;
+
+        case 13:
+        // Ordena os registros do arquivo binário conforme um campo definido pelo usuário. Cria um novo arquivo ordenado.
+            scanf("%s", nomeArquivoBin);
+            char nomeNovoArquivo[100];
+            scanf("%s", nomeNovoArquivo);
+            char campoCriterio[50];
+            scanf("%s", campoCriterio);
+            sortBinary(nomeArquivoBin, campoCriterio, nomeNovoArquivo);
+            break;
+            
+        case 14:
+        //
+            break;
+
     }
     return 0;
 }

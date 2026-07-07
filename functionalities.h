@@ -107,4 +107,25 @@ void Insert(char *FileName, int nroInsercoes);
  */
 void Update(char *FileName, int nroAtualizacoes);
 
+/**
+ * @brief Funcionalidade de Ordenação Interna (Sort and Rebuild): Ordena os registros e recria o arquivo.
+ *
+ * Realiza a leitura integral de todos os registros ativos de um arquivo de dados para a memória RAM.
+ * Utiliza o algoritmo nativo Quicksort (O(n log n)) para ordenar o vetor dinâmico de registros 
+ * com base em um critério (campo) escolhido pelo usuário. Em seguida, serializa os dados ordenados 
+ * em um novo arquivo binário. Registros logicamente removidos são descartados durante a leitura, 
+ * promovendo a desfragmentação (Vacuum) do novo arquivo.
+ *
+ * @pre O arquivo de entrada deve estar íntegro (status == '1'). A memória RAM deve ser 
+ * suficiente para comportar o vetor de Registro.
+ * @post Um novo arquivo binário é gerado com os registros ordenados. O cabeçalho é recalculado, 
+ * redefinindo a pilha de removidos (topo = -1) e atualizando o proxRRN para corresponder 
+ * exatamente à quantidade de registros consolidados.
+ *
+ * @param inputFileName Nome do arquivo de dados original (desordenado).
+ * @param outputFileName Nome do arquivo de dados destino (ordenado).
+ * @param campoOrdenacao String indicando o nome da coluna que servirá como critério de ordenação.
+ */
+void sortBinary(char *inputFileName, char *campoOrdenacao, char *outputFileName);
+
 #endif
