@@ -3,10 +3,11 @@
 #include "register.h"
 #include "header.h"
 #include "utils.h"
+#include "join.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-/*  TRABALHO 1 - INDEXAÇÃO DE REGISTROS EM ESTRUTURA DE ÁRVORE BINÁRIA A PARTIR DE UM ARQUIVO DE DADOS
+/* TRABALHO 1 - INDEXAÇÃO DE REGISTROS EM ESTRUTURA DE ÁRVORE BINÁRIA A PARTIR DE UM ARQUIVO DE DADOS
     Guilherme Pego dos Santos - 15575570
     Pablo Henrique Almeida Vieira - 16895429
     NOME DA EQUIPE: G13
@@ -94,42 +95,51 @@ int main(void) {
             break;
 
         case 10:
-        // Remove registros e atualiza o índice árvore-B
+            // Remove registros e atualiza o índice árvore-B
             int nroRemocoes9;
             scanf("%s", nomeArquivoBin);
             scanf("%s", nomeArquivoIndice);
             scanf("%d", &nroRemocoes9);
             deleteWithIndex(nomeArquivoBin, nomeArquivoIndice, nroRemocoes9);
             break;
-
-        case 11:
-        //
+        
+        case 11: {
+            // Realiza a junção de dois arquivos por loop aninhado (Nested Loop Join)
+            char arq1[100], campo1[50], arq2[100], campo2[50];
+            scanf("%s %s %s %s", arq1, campo1, arq2, campo2);
+            juncaoLoopAninhado(arq1, campo1, arq2, campo2);
             break;
+        }
 
-        case 12:
-        //
+        case 12: {
+            // Realiza a junção de dois arquivos por loop único usando índice Árvore-B
+            char arq1[100], campo1[50], arq2[100], campo2[50], indice[100];
+            scanf("%s %s %s %s %s", arq1, campo1, arq2, campo2, indice);
+            juncaoLoopUnico(arq1, campo1, arq2, campo2, indice);
             break;
+        }
 
-        case 13:
-        // Ordena os registros do arquivo binário conforme um campo definido pelo usuário. Cria um novo arquivo ordenado.
-            scanf("%s", nomeArquivoBin);
-            char nomeNovoArquivo[100];
-            scanf("%s", nomeNovoArquivo);
-            char campoCriterio[50];
-            scanf("%s", campoCriterio);
-            sortBinary(nomeArquivoBin, campoCriterio, nomeNovoArquivo);
+        case 13: {
+            // Ordena um arquivo binário com base em um campo e gera um novo arquivo ordenado
+            char nomeArquivoBin13[100], campoCriterio[50], nomeNovoArquivo[100];
+            scanf("%s %s %s", nomeArquivoBin13, campoCriterio, nomeNovoArquivo);
+            sortBinary(nomeArquivoBin13, campoCriterio, nomeNovoArquivo);
             break;
+        }
 
-        case 14:
-        // Faz o merge entre dois arquivos binários ordenados em relação a campos definidos pelo usuário e imprime o registro ao final.
+        case 14: {
+            // Realiza a junção por ordenação-intercalação (Merge Join) e imprime os registros
             scanf("%s", nomeArquivoBin);
             char campoCriterio1[50];
             scanf("%s", campoCriterio1);
             char nomeArquivoBin2[100];
             scanf("%s", nomeArquivoBin2);
             char campoCriterio2[50];
+            scanf("%s", campoCriterio2);
+            
             juncaoOrdenacao(nomeArquivoBin, campoCriterio1, nomeArquivoBin2, campoCriterio2);
             break;
+        }
     }
     return 0;
 }
