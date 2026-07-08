@@ -150,10 +150,10 @@ void juncaoLoopUnico(char *arq1, char *campo1, char *arq2, char *campo2, char *i
  * uma varredura sincronizada para juntar os registros que satisfaçam
  * a condição de igualdade entre os campos.
  */
-void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2) {
+void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2){
     // Utiliza a funcionalidade [13] para criar arquivos temporários com os registros ordenados
-    char tempArq1[] = "temp_sorted1.bin";
-    char tempArq2[] = "temp_sorted2.bin";
+    char tempArq1[] = "temp1.bin";
+    char tempArq2[] = "temp2.bin";
     
     sortBinary(arq1, campo1, tempArq1); // Ordena arquivo 1
     sortBinary(arq2, campo2, tempArq2); // Ordena arquivo 2
@@ -174,7 +174,7 @@ void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2) {
     readHeader(&h1, f1);
     readHeader(&h2, f2);
 
-    if (h1.status == '0' || h2.status == '0') {
+    if (h1.status == '0' || h2.status == '0'){
         printf("Falha no processamento do arquivo.\n");
         fclose(f1);
         fclose(f2);
@@ -204,7 +204,7 @@ void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2) {
         }
 
         // COMPARAÇÃO DAS CHAVES
-        if (r1.codProxEstacao == r2.codEstacao) {
+        if (r1.codProxEstacao == r2.codEstacao){
             // Match das chaves
             encontrou = 1;
             printRegistroJuncao(&r1, &r2);
@@ -212,15 +212,15 @@ void juncaoOrdenacao(char *arq1, char *campo1, char *arq2, char *campo2) {
             // Como a codEstacao (r2) é Chave Primária (única), múltiplas estações (r1) 
             // podem apontar para ela (Relação N:1). Apenas R1 avança.
             existeR1 = readRegistros(&r1, f1);
-            
-        } else if (r1.codProxEstacao < r2.codEstacao) {
+        } 
+        
+        else if (r1.codProxEstacao < r2.codEstacao)
             // Se a chave do R1 ficou para trás, avança R1 para tentar alcançar R2
             existeR1 = readRegistros(&r1, f1);
-            
-        } else {
+        else
             // Se a chave do R2 ficou para trás, avança R2 para tentar alcançar R1
             existeR2 = readRegistros(&r2, f2);
-        }
+        
     }
 
     if (!encontrou) {

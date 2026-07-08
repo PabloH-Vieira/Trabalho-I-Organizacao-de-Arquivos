@@ -574,7 +574,7 @@ int compareRegistros(const void *a, const void *b) {
 }
 
 
-void sortBinary(char *inputFileName, char *campoOrdenacao, char *outputFileName) {
+void sortBinary(char *inputFileName, char *campoOrdenacao, char *outputFileName){
     // ABERTURA E VERIFICAÇÃO DO ARQUIVO DE ORIGEM
     FILE *arquivoEntrada = fopen(inputFileName, "rb");
     if (arquivoEntrada == NULL) {
@@ -603,12 +603,11 @@ void sortBinary(char *inputFileName, char *campoOrdenacao, char *outputFileName)
     Registro regAtual;
 
     // LEITURA SEQUENCIAL COM FILTRO DE REMOÇÃO
-    while (readRegistros(&regAtual, arquivoEntrada)) {
+    while (readRegistros(&regAtual, arquivoEntrada)){
         // Ignora qualquer registro removido logicamente
-        if (regAtual.removido == '0') {
-            
+        if (regAtual.removido == '0'){
             // Aumenta capacidade caso necessário
-            if (nroRegistrosAtivos == capacidade) {
+            if (nroRegistrosAtivos == capacidade){
                 capacidade *= 2;
                 vetorRAM = realloc(vetorRAM, capacidade * sizeof(Registro));
             }
